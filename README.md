@@ -1,6 +1,6 @@
 # [embed_webview](https://github.com/jixiaoyong/embed_webview)
 
-[![pub package](https://shields.io/pub/v/embed_webview.svg?style=flat&color=brightgreen)](https://pub.dev/packages/embed_webview)![GitHub](https://img.shields.io/github/license/jixiaoyong/embed_webview)![support platform](https://img.shields.io/badge/support%20platform-Android%7CiOS%7CWeb-brightgreen)
+[![pub package](https://shields.io/pub/v/embed_webview.svg?style=flat&color=brightgreen)](https://pub.dev/packages/embed_webview) ![GitHub](https://img.shields.io/github/license/jixiaoyong/embed_webview?color=brightgreen) ![support platform](https://img.shields.io/badge/support%20platform-Android%7CiOS%7CWeb-brightgreen)
 
 `embed_webview` is a widget that displays web view content inner flutter widget. It can change its size automatically to fit the children.
 
