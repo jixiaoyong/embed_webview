@@ -3,19 +3,17 @@
  * @Date: 22/04/27
  * @LastEditors: jixiaoyong
  * @LastEditTime: 22/04/27
- * @FilePath: /embed_webview/lib/embed/embed_webview.dart
+ * @FilePath: /embed_webview/lib/src/embed_webview.dart
  * @Description: 
  * 
  * @Email: jixiaoyong1995@gmail.com
  * Copyright (c) 2022 by jixiaoyong, All Rights Reserved. 
  */
-import 'dart:convert';
-import 'dart:io';
 
-import 'package:embed_webview/embed/logutil.dart';
 import 'package:flutter/material.dart';
 
 import 'embed_webview_stub.dart';
+import 'logutil.dart';
 import 'webview_utils.dart';
 
 /*

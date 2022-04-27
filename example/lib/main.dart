@@ -1,4 +1,4 @@
-import 'package:embed_webview/embed_webview.dart';
+import 'package:embed_webview/embed_webview.dart' show EmbedWebView;
 import 'package:example/web_content.dart';
 import 'package:flutter/material.dart';
 

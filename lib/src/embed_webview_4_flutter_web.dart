@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:js' as js;
 
+import 'package:embed_webview/src/logutil.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -83,7 +84,7 @@ class EmbedWebView4FlutterWebState extends State<EmbedWebView4FlutterWeb> {
           _iframeElementHeight = documentElement["scrollHeight"].toDouble();
           _iframeElementWidth = documentElement["scrollWidth"].toDouble();
 
-          debugPrint(
+          LogUtil.d(
               "_iframeElementHeight: $_iframeElementHeight _iframeElementWidth: $_iframeElementWidth");
         });
       })
@@ -96,13 +97,6 @@ class EmbedWebView4FlutterWebState extends State<EmbedWebView4FlutterWeb> {
       'iframeElement',
       (int viewId) => _iframeElement,
     );
-  }
-
-  void updateHeight(double height) {
-    print("js call $height");
-    setState(() {
-      _iframeElementHeight = height;
-    });
   }
 
   @override

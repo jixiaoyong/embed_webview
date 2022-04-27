@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:embed_webview/embed/logutil.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+
+import 'logutil.dart';
 
 Widget getEmbedWebView(String srcDoc, [double? width, double? height]) =>
     FlutterWebview4AndroidIos(

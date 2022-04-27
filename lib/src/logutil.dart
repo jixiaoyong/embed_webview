@@ -3,7 +3,7 @@
  * @Date: 22/04/27
  * @LastEditors: jixiaoyong
  * @LastEditTime: 22/04/27
- * @FilePath: /embed_webview/lib/embed/logutil.dart
+ * @FilePath: /embed_webview/lib/src/logutil.dart
  * @Description: log util
  * 
  * @Email: jixiaoyong1995@gmail.com

@@ -2,6 +2,7 @@ name: embed_webview
 description: A widget that display webview content inner flutter widget. It can change it's size automatically to fit the children.
 version: 0.0.1
 homepage: https://github.com/jixiaoyong/embed_webview
+# publish command: dart pub publish --server=https://pub.dev
 
 environment:
   sdk: ">=2.16.2 <3.0.0"
@@ -23,6 +24,14 @@ dev_dependencies:
 
 # The following section is specific to Flutter.
 flutter:
+  plugin:
+    platforms:
+      android:
+        default_package: embed_webview
+      ios:
+        default_package: embed_webview
+      web:
+        default_package: embed_webview
 
   # To add assets to your package, add an assets section, like this:
   # assets:

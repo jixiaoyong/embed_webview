@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /*
 * @description:
-* https://stackoverflow.com/a/60089273/8389461
+* inspired by https://stackoverflow.com/a/60089273/8389461
 *
 * @author: jixiaoyong
 * @email: jixiaoyong1995@gmail.com
