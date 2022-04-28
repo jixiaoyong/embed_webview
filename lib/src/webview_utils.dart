@@ -91,13 +91,18 @@ class WebViewUtils {
       {String? fontSize,
       String? backgroundColor,
       String? lineHeight,
-      bool forceExpandImageWidget = false}) {
+      bool forceExpandImageWidget = false,
+      bool needFormatContent = false}) {
     String contentFormatted;
     try {
       contentFormatted = Uri.decodeFull(content);
     } catch (e) {
       contentFormatted = content;
       LogUtil.e(e);
+    }
+
+    if (!needFormatContent) {
+      return onlyWrapWithHtmlSketch(contentFormatted);
     }
 
     var localFontSize = fontSize;
@@ -130,5 +135,27 @@ class WebViewUtils {
       {String? fontSize}) {
     var widthPx = width * MediaQuery.of(context).devicePixelRatio;
     return getWebContent(content, widthPx.toInt(), fontSize: fontSize);
+  }
+
+  static String onlyWrapWithHtmlSketch(String contentFormatted) {
+    return """<html style="width:auto;height: auto;max-width: min-content;overflow:hidden;border:none">
+    <head style="width:auto;height: auto;max-width: min-content;overflow:hidden;border:none"><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /> 
+    <style>
+    body {
+  margin: 0px;
+  padding: 0px;
+  }
+    </style>
+    <script type="text/javascript">
+    
+    </script>
+    </head> 
+                <body style="width:auto;height: auto;max-width: min-content;overflow:hidden;border:none"> 
+               <div id="webContent" style="width:auto;height: auto;max-width: min-content;overflow:hidden;border:none">
+               """ +
+        contentFormatted +
+        """</div>
+ </body> 
+               </html>""";
   }
 }

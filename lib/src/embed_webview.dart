@@ -30,50 +30,44 @@ import 'webview_utils.dart';
 class EmbedWebView extends StatefulWidget {
   String webViewContent = "";
   final double? width;
-  final double? maxHeight;
+  final double? height;
   final String? fontSize;
   final String? backgroundColor;
   final String? lineHeight;
   final bool forceExpandImageWidget;
+  // whether to add style on web content
+  final bool needFormatContent;
 
   /// A widget that displays a WebView in Flutter Web.
   /// The [srcDoc] property must be set to a valid HTML document.
   /// example:
   /// ```html
-  /// <!DOCTYPE html>
-  /// <html>
-  ///   <head>
-  ///     <meta charset="utf-8">
-  ///     <title>
-  ///     </title>
-  ///   </head>
-  ///
-  ///   <body>
-  ///   </body>
-  ///
-  /// </html>
+  ///   <div>
+  ///   <!-- There is your code -->
+  ///   </div>
   /// ```
   /// @param [webViewContent]: web view content
   ///   页面间传递中文需要用Uri.encodeComponent转换，
   ///   否则就报Invalid argument(s): Illegal percent encoding in URI异常
   /// @param [width]: the width of the webview, if null, the width will be as wide as it can be
-  /// @param [maxHeight] 最大高度，超出则滑动WebView,没有则不限制高度
+  /// @param [height] the hight of this webview, if null , the height will be as high as it can be
   /// @param [fontSize]: 网页文本的字体大小，如"4vw"，不指定则用默认的大小
   /// @param [backgroundColor] 网页的背景颜色，格式为#RRGGBB，默认白色
   /// @param [forceExpandImageWidget]: force expand image widget's width and height to fit the screen
+  /// @param [needFormatContent]: whether to add style on web content, if you want
+  ///   to set [fontSize]/[backgroundColor]/[lineHeight]/[forceExpandImageWidget]
+  ///   you should set this to true. If you just want to show your web content,
+  ///   then you should set this to false.
   EmbedWebView(this.webViewContent,
       {Key? key,
       this.width,
-      this.maxHeight,
+      this.height,
       this.fontSize,
       this.backgroundColor,
       this.lineHeight,
-      this.forceExpandImageWidget = false})
-      : super(key: key) {
-    if (webViewContent.isNotEmpty) {
-      webViewContent = Uri.encodeComponent(webViewContent);
-    }
-  }
+      this.forceExpandImageWidget = false,
+      this.needFormatContent = true})
+      : super(key: key);
 
   @override
   State<EmbedWebView> createState() => _EmbedWebViewState();
@@ -82,7 +76,7 @@ class EmbedWebView extends StatefulWidget {
 class _EmbedWebViewState extends State<EmbedWebView> {
   // the width this widget can use, usually is [widget.width] or the width of the screen
   double? _widgetMaxWidth;
-  double _screenMaxHeightPx = double.infinity;
+  double? _screenheightPx;
 
   @override
   void initState() {
@@ -108,10 +102,10 @@ class _EmbedWebViewState extends State<EmbedWebView> {
     // otherwise use the screen width
     var widthPx = (_widgetMaxWidth ?? MediaQuery.of(context).size.width) *
         MediaQuery.of(context).devicePixelRatio;
-    var maxHeight = widget.maxHeight;
-    _screenMaxHeightPx = maxHeight == null
-        ? _screenMaxHeightPx
-        : maxHeight * MediaQuery.of(context).devicePixelRatio;
+
+    _screenheightPx = widget.height == null
+        ? null
+        : widget.height! * (MediaQuery.of(context).devicePixelRatio);
 
     // format the web view content
     var webViewContentHtml = WebViewUtils.getWebContent(
@@ -119,21 +113,22 @@ class _EmbedWebViewState extends State<EmbedWebView> {
         fontSize: widget.fontSize,
         backgroundColor: widget.backgroundColor,
         forceExpandImageWidget: widget.forceExpandImageWidget,
-        lineHeight: widget.lineHeight);
+        lineHeight: widget.lineHeight,
+        needFormatContent: widget.needFormatContent);
 
     LogUtil.d("build webViewContentHtml:$webViewContentHtml");
-    LogUtil.d("width $_widgetMaxWidth  , height $_screenMaxHeightPx");
+    LogUtil.d("width $_widgetMaxWidth  , height $_screenheightPx");
     return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: _screenMaxHeightPx),
+      constraints: BoxConstraints(
+          maxHeight: widget.height ?? MediaQuery.of(context).size.height),
       child: SingleChildScrollView(
         child: GestureDetector(
             onHorizontalDragUpdate: (value) {},
             child: SizedBox(
               width: _widgetMaxWidth,
+              height: widget.height,
               child: getEmbedWebViewAuto(
-                webViewContentHtml,
-                widthPx,
-              ),
+                  webViewContentHtml, widthPx, _screenheightPx),
             )),
       ),
     );

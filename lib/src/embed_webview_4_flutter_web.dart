@@ -25,18 +25,9 @@ Widget getEmbedWebView(String srcDoc, [double? width, double? height]) =>
 /// The [srcDoc] property must be set to a valid HTML document.
 /// example:
 /// ```html
-/// <!DOCTYPE html>
-/// <html>
-///   <head>
-///     <meta charset="utf-8">
-///     <title>
-///     </title>
-///   </head>
-///
-///   <body>
-///   </body>
-///
-/// </html>
+///   <div>
+///   <!-- There is your code -->
+///   </div>
 /// ```
 /// The [width] and [height] properties can be null when you want the widget to
 /// size itself to the size of the WebView content.
@@ -87,6 +78,17 @@ class EmbedWebView4FlutterWebState extends State<EmbedWebView4FlutterWeb> {
       ..height = "auto"
       ..width = "auto"
       ..style.border = 'none';
+
+      // ..height = "fit-content"
+      // ..width = "fit-content"
+      // ..style.border = "none"
+      // ..style.padding = "0"
+      // ..style.color = "transparent"
+      // ..style.height = "min-content"
+      // // ..style.width = "fit-content"
+      // // ..style.maxWidth = "fit-content"
+      // // ..style.maxHeight = "fit-content"
+      // ..style.margin = "0";
 
     // ignore: undefined_prefixed_name
     ui.platformViewRegistry.registerViewFactory(
