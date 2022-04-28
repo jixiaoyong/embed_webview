@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'logutil.dart';
 
 /*
-* @description: TODO
+* @description: 
 *
 * @author: jixiaoyong
 * @email: jixiaoyong1995@gmail.com
@@ -11,14 +11,14 @@ import 'logutil.dart';
 */
 class WebViewUtils {
   // The design draft is 375 px wide
-  static const design_width = 375;
+  // static const design_width = 375;
 
   // When the design draft is 375 px wide, the corresponding font size is calculated as follows:
   // 100vw / 375px = fontSizeVw / uiFontSizePx
-  static const String font_size = "4.5vw";
+  static const String _fontSize = "4.5vw";
 
-  static const String KeyWebBackgroundColor = "{{webBackgroundColor}}";
-  static const String KeyLineHeight = "{{lineHeight}}";
+  static const String _keyWebBackgroundColor = "{{webBackgroundColor}}";
+  static const String _keyLineHeight = "{{lineHeight}}";
 
   static const String webContentPrefix =
       r"""<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /> 
@@ -61,12 +61,12 @@ class WebViewUtils {
         <!--${EXPAND_IMG_WIDTH_JS}-->
          
              var spans = document.getElementsByTagName('span');
-    console.log('span：', spans);
+    
     for (var i = 0; i < spans.length; i++) {
       if (!spans[i].style.color) {
 
         if (spans[i].parentElement.nodeName == "SPAN") {
-          console.log('span：', spans[i]);
+          
           var parentColor = spans[i].parentElement.style.color;
           if (parentColor) {
             spans[i].style.color = parentColor;
@@ -102,7 +102,7 @@ class WebViewUtils {
 
     var localFontSize = fontSize;
     if (fontSize == null || fontSize.isEmpty) {
-      localFontSize = font_size;
+      localFontSize = _fontSize;
     }
 
     String _webContentSuffix = webContentSuffix;
@@ -112,10 +112,10 @@ class WebViewUtils {
     }
 
     var webContentPrefixFormatted = webContentPrefix.replaceAll(
-        KeyWebBackgroundColor, backgroundColor ?? "#ffffff");
+        _keyWebBackgroundColor, backgroundColor ?? "#ffffff");
     return (webContentPrefixFormatted +
             contentFormatted +
-            _webContentSuffix.replaceAll(KeyLineHeight, lineHeight ?? "1.8em"))
+            _webContentSuffix.replaceAll(_keyLineHeight, lineHeight ?? "1.8em"))
         .replaceAll(
             RegExp("font-size:[ ]*[0-9]*px"), "font-size:$localFontSize ")
         .replaceAll(

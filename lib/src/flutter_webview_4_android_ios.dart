@@ -34,7 +34,6 @@ class FlutterWebview4AndroidIos extends StatefulWidget {
 class _FlutterWebview4AndroidIosState extends State<FlutterWebview4AndroidIos> {
   double _heights = 10;
   double? _widgetWidth;
-  double _screenMaxHeightPx = double.infinity;
 
   WebViewController? webViewController;
   WebViewPlatform? cachePlatform;
@@ -97,20 +96,21 @@ class _FlutterWebview4AndroidIosState extends State<FlutterWebview4AndroidIos> {
 
   Future<void> _onPageFinished() async {
     double devicePixelRatio = double.parse(await webViewController
-            ?.evaluateJavascript("window.devicePixelRatio") ??
+            ?.runJavascriptReturningResult("window.devicePixelRatio") ??
         "0.0");
 
     double webViewWidth = double.parse(await webViewController
-                ?.evaluateJavascript("document.body.scrollWidth") ??
+                ?.runJavascriptReturningResult("document.body.scrollWidth") ??
             "0.0") *
         devicePixelRatio;
     var widthPx = widget.width;
 
     var webWidgetScale = webViewWidth / widthPx;
 
-    double height = double.parse(await webViewController?.evaluateJavascript(
-                "document.getElementById('webContent').scrollHeight") ??
-            "0.0") *
+    double height = double.parse(
+            await webViewController?.runJavascriptReturningResult(
+                    "document.getElementById('webContent').scrollHeight") ??
+                "0.0") *
         devicePixelRatio;
 
     height = (height / webWidgetScale) + 1;

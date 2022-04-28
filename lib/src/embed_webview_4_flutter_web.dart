@@ -51,15 +51,11 @@ class EmbedWebView4FlutterWeb extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() {
-    if (!kIsWeb) {
-      throw Exception("EmbedWebView4FlutterWeb is only supported in web.");
-    }
     return EmbedWebView4FlutterWebState();
   }
 }
 
 class EmbedWebView4FlutterWebState extends State<EmbedWebView4FlutterWeb> {
-  late String _url;
   late html.IFrameElement _iframeElement;
   double _iframeElementHeight = 10;
   double _iframeElementWidth = 10;

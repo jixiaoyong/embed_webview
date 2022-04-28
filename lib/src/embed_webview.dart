@@ -2,8 +2,8 @@
  * @Author: jixiaoyong
  * @Date: 22/04/27
  * @LastEditors: jixiaoyong
- * @LastEditTime: 22/04/27
- * @FilePath: /embed_webview/lib/src/embed_webview.dart
+ * @LastEditTime: 22/04/28
+ * @FilePath: \embed_webview\lib\src\embed_webview.dart
  * @Description: 
  * 
  * @Email: jixiaoyong1995@gmail.com
@@ -26,14 +26,15 @@ import 'webview_utils.dart';
 * @email: jixiaoyong1995@gmail.com
 * @date: 2021/11/30
 */
+// ignore: must_be_immutable
 class EmbedWebView extends StatefulWidget {
   String webViewContent = "";
-  double? width;
-  double? maxHeight = 0;
-  String? fontSize;
-  String? backgroundColor;
-  String? lineHeight;
-  bool forceExpandImageWidget;
+  final double? width;
+  final double? maxHeight;
+  final String? fontSize;
+  final String? backgroundColor;
+  final String? lineHeight;
+  final bool forceExpandImageWidget;
 
   /// A widget that displays a WebView in Flutter Web.
   /// The [srcDoc] property must be set to a valid HTML document.
@@ -61,12 +62,14 @@ class EmbedWebView extends StatefulWidget {
   /// @param [backgroundColor] 网页的背景颜色，格式为#RRGGBB，默认白色
   /// @param [forceExpandImageWidget]: force expand image widget's width and height to fit the screen
   EmbedWebView(this.webViewContent,
-      {this.width,
+      {Key? key,
+      this.width,
       this.maxHeight,
       this.fontSize,
       this.backgroundColor,
       this.lineHeight,
-      this.forceExpandImageWidget = false}) {
+      this.forceExpandImageWidget = false})
+      : super(key: key) {
     if (webViewContent.isNotEmpty) {
       webViewContent = Uri.encodeComponent(webViewContent);
     }

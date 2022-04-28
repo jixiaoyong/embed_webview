@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
  * @Author: jixiaoyong
  * @Date: 22/04/27
  * @LastEditors: jixiaoyong
- * @LastEditTime: 22/04/27
- * @FilePath: /embed_webview/example/lib/main.dart
+ * @LastEditTime: 22/04/28
+ * @FilePath: \embed_webview\example\lib\main.dart
  * @Description: 
  * 
  * @Email: jixiaoyong1995@gmail.com
@@ -44,44 +44,41 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Container(
-        child: Column(
-          children: [
-            Container(
-              color: Colors.orange.shade200,
-              height: 100,
-              child: const Center(
-                child: Text(
-                  "This is a text before the webview.",
-                  style: TextStyle(
-                    fontSize: 20,
-                  ),
+      body: Column(
+        children: [
+          Container(
+            color: Colors.orange.shade200,
+            height: 100,
+            child: const Center(
+              child: Text(
+                "This is a text before the webview.",
+                style: TextStyle(
+                  fontSize: 20,
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(0.0),
-              child: EmbedWebView(WebContent),
-            ),
-            Container(
-              color: Colors.blue.shade200,
-              height: 100,
-              child: const Center(
-                child: Text(
-                  "This is a text after the webview.",
-                  style: TextStyle(
-                    fontSize: 20,
-                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(0.0),
+            child: EmbedWebView(webContent),
+          ),
+          Container(
+            color: Colors.blue.shade200,
+            height: 100,
+            child: const Center(
+              child: Text(
+                "This is a text after the webview.",
+                style: TextStyle(
+                  fontSize: 20,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
