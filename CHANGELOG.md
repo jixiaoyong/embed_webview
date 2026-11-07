@@ -1,3 +1,15 @@
+## 0.3.0
+
+### What's New
+* **Loading & Error States**: Added optional `loadingBuilder`, `errorBuilder` and `onWebResourceError` to `EmbedWebView` / `EmbedWebView.network`. While a remote page is loading, `loadingBuilder` receives the load progress (0.0–1.0); on failure, `errorBuilder` receives the error object and renders a custom error card instead of a blank area.
+* **Main-Frame-Only Error State**: Only main-frame failures enter the error state. `WebResourceError.isForMainFrame` filters resource errors; HTTP errors are filtered by comparing the failed request URI against the last main-frame URL (sub-resource 404s no longer blank the whole page).
+* **Example Network Demo**: Added a network-mode demo card in the example app (loading progress + error card + retry button, defaults to a non-existent domain so the error state is visible immediately).
+
+#### 新增特性
+* **加载态与错误态**：`EmbedWebView` / `EmbedWebView.network` 新增可选参数 `loadingBuilder`、`errorBuilder` 与 `onWebResourceError`。远程页面加载中时 `loadingBuilder` 收到加载进度（0.0–1.0）；失败时 `errorBuilder` 收到错误对象，可渲染自定义错误卡片，不再是一片空白。
+* **仅主框架失败才进错误态**：资源错误用 `WebResourceError.isForMainFrame` 过滤；HTTP 错误改用失败请求 URI 与最近一次主框架 URL 比较（子资源 404 不会再让整页置空）。
+* **示例网络演示卡片**：示例 App 增加网络模式演示卡（加载进度 + 错误卡片 + 重试按钮，默认填不存在的域名，打开即能看到错误态）。
+
 ## 0.2.0
 
 ### What's New
