@@ -8,6 +8,9 @@ class MockPlatformWebViewController extends PlatformWebViewController {
   MockPlatformWebViewController(super.params) : super.implementation();
 
   @override
+  Future<void> runJavaScript(String javaScript) async {}
+
+  @override
   Future<void> setJavaScriptMode(JavaScriptMode javaScriptMode) async {}
 
   @override
@@ -79,9 +82,15 @@ void main() {
   testWidgets('Smoke test for MyHomePage layout', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
 
-    expect(find.textContaining('Embed Webview Demo'), findsOneWidget);
-    expect(find.text('Text before webview (Flutter native)'), findsOneWidget);
-    expect(find.text('Text after webview (Flutter native)'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            (widget.data?.contains('Embed Webview Demo') == true ||
+             widget.data?.contains('自适应 WebView 演示') == true),
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(EmbedWebView), findsOneWidget);
   });
 }

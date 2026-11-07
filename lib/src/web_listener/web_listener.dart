@@ -5,6 +5,14 @@ abstract class WebMessageSubscription {
   void cancel();
 }
 
-WebMessageSubscription? initWebMessageListener(void Function(double height) onHeight) {
-  return createWebMessageListener(onHeight);
+WebMessageSubscription? initWebMessageListener({
+  required void Function(double height) onHeight,
+  void Function(double deltaY)? onScroll,
+  void Function(String lang)? onLanguage,
+}) {
+  return createWebMessageListener(
+    onHeight: onHeight,
+    onScroll: onScroll,
+    onLanguage: onLanguage,
+  );
 }

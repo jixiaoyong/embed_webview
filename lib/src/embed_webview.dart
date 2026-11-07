@@ -59,6 +59,19 @@ class EmbedWebView extends StatefulWidget {
   /// 手势识别器集合，用于外层滚动视图（如 ListView、CustomScrollView）的手势竞技与穿透协调
   final Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers;
 
+  /// 可选的外层滚动控制器。
+  /// 当内嵌网页在 Web、macOS 或移动端产生无法在内部消费的滚轮或滑动时，驱动外层 [ScrollController] 实现平滑滚动。
+  final ScrollController? scrollController;
+
+  /// 语言变更回调（当用户在网页内部切换语言时触发）
+  final void Function(String language)? onLanguageChanged;
+
+  /// 滚动锁定回调（当用户手指按在网页内部可滚动区域时为 true，手指抬起时为 false）
+  final void Function(bool isLocked)? onScrollLockChanged;
+
+  /// WebViewController 实例回调
+  final void Function(WebViewController controller)? onWebViewCreated;
+
   // ------------ 向下兼容历史参数 ------------
   @Deprecated('已废弃，建议直接在传入的 HTML 中定义自己的字体')
   final String? fontSize;
@@ -87,6 +100,10 @@ class EmbedWebView extends StatefulWidget {
     this.onHeightChanged,
     this.onLinkTap,
     this.gestureRecognizers,
+    this.scrollController,
+    this.onLanguageChanged,
+    this.onScrollLockChanged,
+    this.onWebViewCreated,
     this.fontSize,
     this.lineHeight,
     this.forceExpandImageWidget = false,
@@ -108,6 +125,10 @@ class EmbedWebView extends StatefulWidget {
     this.onHeightChanged,
     this.onLinkTap,
     this.gestureRecognizers,
+    this.scrollController,
+    this.onLanguageChanged,
+    this.onScrollLockChanged,
+    this.onWebViewCreated,
     this.fontSize,
     this.lineHeight,
     this.forceExpandImageWidget = false,
@@ -146,8 +167,33 @@ class _EmbedWebViewState extends State<EmbedWebView>
         ..addJavaScriptChannel(
           WebViewUtils.channelName,
           onMessageReceived: (JavaScriptMessage message) {
-            final double? parsedHeight = double.tryParse(message.message);
-            _handleHeightUpdate(parsedHeight);
+            final String text = message.message;
+            LogUtil.d("onMessageReceived: $text");
+            if (text.startsWith('scroll_wheel:')) {
+              final double? delta = double.tryParse(text.substring('scroll_wheel:'.length));
+              if (delta != null) {
+                _handleWheelScroll(delta);
+              }
+            } else if (text.startsWith('scroll_touch:')) {
+              final double? delta = double.tryParse(text.substring('scroll_touch:'.length));
+              if (delta != null) {
+                _handleTouchScroll(delta);
+              }
+            } else if (text.startsWith('scroll:')) {
+              final double? delta = double.tryParse(text.substring('scroll:'.length));
+              if (delta != null) {
+                _handleWheelScroll(delta);
+              }
+            } else if (text.startsWith('lang:')) {
+              final String lang = text.substring('lang:'.length);
+              widget.onLanguageChanged?.call(lang);
+            } else if (text.startsWith('lock_scroll:')) {
+              final bool isLocked = text.substring('lock_scroll:'.length) == 'true';
+              widget.onScrollLockChanged?.call(isLocked);
+            } else {
+              final double? parsedHeight = double.tryParse(text);
+              _handleHeightUpdate(parsedHeight);
+            }
           },
         )
         ..setNavigationDelegate(
@@ -188,9 +234,51 @@ class _EmbedWebViewState extends State<EmbedWebView>
         );
     } else {
       // Web 浏览器平台：注册标准 HTML5 postMessage 监听，避开平台未实现异常
-      _webMessageSubscription = initWebMessageListener((double height) {
-        _handleHeightUpdate(height);
-      });
+      _webMessageSubscription = initWebMessageListener(
+        onHeight: (double height) {
+          _handleHeightUpdate(height);
+        },
+        onScroll: (double deltaY) {
+          _handleScroll(deltaY);
+        },
+        onLanguage: (String lang) {
+          widget.onLanguageChanged?.call(lang);
+        },
+      );
+    }
+
+    widget.onWebViewCreated?.call(_controller);
+  }
+
+  void _handleScroll(double deltaY) {
+    _handleWheelScroll(deltaY);
+  }
+
+  void _handleWheelScroll(double deltaY) {
+    final ScrollController? controller = widget.scrollController;
+    if (controller != null && controller.hasClients) {
+      try {
+        controller.position.pointerScroll(deltaY);
+        LogUtil.d("Wheel pointerScroll: delta=$deltaY");
+      } catch (_) {
+        final double target = (controller.offset + deltaY).clamp(
+          0.0,
+          controller.position.maxScrollExtent,
+        );
+        controller.jumpTo(target);
+      }
+    }
+  }
+
+  void _handleTouchScroll(double deltaY) {
+    final ScrollController? controller = widget.scrollController;
+    if (controller != null && controller.hasClients) {
+      final double target = (controller.offset + deltaY).clamp(
+        0.0,
+        controller.position.maxScrollExtent,
+      );
+      controller.jumpTo(target);
+      LogUtil.d("Touch jumpTo: delta=$deltaY, newOffset=$target");
     }
   }
 

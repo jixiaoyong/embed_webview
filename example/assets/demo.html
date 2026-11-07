@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: transparent;
+      padding: 12px;
+      color: #2D3748;
+    }
+    .card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1A202C;
+    }
+    .badge {
+      font-size: 12px;
+      background: #EBF8FF;
+      color: #3182CE;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .lang-switch {
+      display: inline-flex;
+      background: #EDF2F7;
+      border-radius: 6px;
+      padding: 2px;
+      flex-shrink: 0;
+    }
+    .lang-btn {
+      border: none;
+      background: transparent;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #718096;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .lang-btn.active {
+      background: #FFFFFF;
+      color: #3182CE;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .desc {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #4A5568;
+      margin-bottom: 14px;
+    }
+    .scroll-box-container {
+      margin-bottom: 14px;
+    }
+    .scroll-box-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #4A5568;
+      margin-bottom: 6px;
+    }
+    .scroll-box {
+      height: 100px;
+      overflow-y: auto;
+      background: #F7FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #4A5568;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    .scroll-item {
+      padding: 3px 0;
+      border-bottom: 1px solid #EDF2F7;
+    }
+    .scroll-item:last-child {
+      border-bottom: none;
+    }
+    .scroll-item .num {
+      color: #3182CE;
+      font-weight: bold;
+      margin-right: 4px;
+    }
+    .btn-toggle {
+      display: inline-block;
+      width: 100%;
+      background: #3182CE;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      outline: none;
+      transition: background 0.2s ease;
+    }
+    .btn-toggle:active {
+      background: #2B6CB0;
+    }
+    .details {
+      display: none;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px dashed #CBD5E0;
+    }
+    .details.expanded {
+      display: block;
+    }
+    .feature-item {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #4A5568;
+      margin-bottom: 8px;
+      padding-left: 14px;
+      position: relative;
+    }
+    .feature-item::before {
+      content: "•";
+      color: #3182CE;
+      font-weight: bold;
+      position: absolute;
+      left: 0;
+    }
+    .link-row {
+      margin-top: 12px;
+      font-size: 13px;
+      text-align: right;
+    }
+    .link-row a {
+      color: #3182CE;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .link-row a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="header-left">
+        <span class="title" id="txtTitle">Embed WebView 演示页面</span>
+        <span class="badge" id="txtBadge">v0.1.0 动态自适应</span>
+      </div>
+      <div class="lang-switch">
+        <button id="btnZh" class="lang-btn active" onclick="switchLanguage('zh')">中文</button>
+        <button id="btnEn" class="lang-btn" onclick="switchLanguage('en')">English</button>
+      </div>
+    </div>
+    <div class="desc" id="txtDesc">
+      这是一个内嵌在 Flutter 中的 HTML 卡片。支持无滚动条高度自适应、智能嵌套滚轮穿透、以及中英文多语言即刻切换。
+    </div>
+
+    <!-- 内部可滚动盒子 (100px 固定高度，overflow-y: auto) -->
+    <div class="scroll-box-container">
+      <div class="scroll-box-title" id="scrollTitle">
+        📜 内部可滚动盒子 (100px 固定高度，测试智能滚轮穿透)：
+      </div>
+      <div class="scroll-box" id="scrollBox">
+        <div class="scroll-item"><span class="num">1.</span><span id="logItem1">探针初始化完成：已挂载 ResizeObserver 探针</span></div>
+        <div class="scroll-item"><span class="num">2.</span><span id="logItem2">智能滚轮穿透已激活：优先滚动内部容器</span></div>
+        <div class="scroll-item"><span class="num">3.</span><span id="logItem3">鼠标位于本区域内时，滚轮在未触底前优先滚动盒子内部</span></div>
+        <div class="scroll-item"><span class="num">4.</span><span id="logItem4">继续向下滚动，触达盒子底部后，滚轮平滑带动外部页面滚动</span></div>
+        <div class="scroll-item"><span class="num">5.</span><span id="logItem5">反向向上滚动，未触顶前优先向上回滚盒子内部</span></div>
+        <div class="scroll-item"><span class="num">6.</span><span id="logItem6">触达盒子顶部后，滚轮继续平滑带动外部页面向上滚动</span></div>
+        <div class="scroll-item"><span class="num">7.</span><span id="logItem7">鼠标移出本盒子在卡片其他区域滚动，直接平滑联动外层页面</span></div>
+        <div class="scroll-item"><span class="num">8.</span><span id="logItem8">双向嵌套滚轮穿透与高度动态伸缩完美兼顾</span></div>
+      </div>
+    </div>
+
+    <button id="toggleBtn" class="btn-toggle" onclick="toggleDetails()">
+      点此展开详细功能列表 (测试动态高度变化)
+    </button>
+    
+    <div id="detailsBox" class="details">
+      <div class="feature-item" id="featItem1"><b>全平台标准通信</b>：移动端/桌面端走原生 Channel，Web 端走 HTML5 postMessage，彻底解决未实现异常。</div>
+      <div class="feature-item" id="featItem2"><b>智能嵌套滚轮穿透</b>：内部有可滚动容器时优先滚容器内部，触碰边界或无滚动条时无缝穿透带动外层页面。</div>
+      <div class="feature-item" id="featItem3"><b>毫秒级尺寸监听</b>：底层挂载现代 ResizeObserver 探针，内容一旦变动即刻联动父容器重绘。</div>
+      <div class="feature-item" id="featItem4"><b>告别内置滚动条</b>：WebView 高度精确贴合内容，完美融入 Flutter ListView 或 SingleChildScrollView。</div>
+      <div class="feature-item" id="featItem5"><b>无侵入纯粹设计</b>：绝不篡改用户的 HTML 标签、字号或内联排版，还原本真样式。</div>
+      <div class="link-row">
+        <a id="txtLink" href="https://github.com/jixiaoyong/embed_webview">访问 GitHub 源码仓库 &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var currentLang = 'zh';
+    var isExpanded = false;
+
+    var i18nData = {
+      zh: {
+        title: 'Embed WebView 演示页面',
+        badge: 'v0.1.0 动态自适应',
+        desc: '这是一个内嵌在 Flutter 中的 HTML 卡片。支持无滚动条高度自适应、智能嵌套滚轮穿透、以及中英文多语言即刻切换。',
+        scrollTitle: '📜 内部可滚动盒子 (100px 固定高度，测试智能滚轮穿透)：',
+        logs: [
+          '探针初始化完成：已挂载 ResizeObserver 探针',
+          '智能滚轮穿透已激活：优先滚动内部容器',
+          '鼠标位于本区域内时，滚轮在未触底前优先滚动盒子内部',
+          '继续向下滚动，触达盒子底部后，滚轮平滑带动外部页面滚动',
+          '反向向上滚动，未触顶前优先向上回滚盒子内部',
+          '触达盒子顶部后，滚轮继续平滑带动外部页面向上滚动',
+          '鼠标移出本盒子在卡片其他区域滚动，直接平滑联动外层页面',
+          '双向嵌套滚轮穿透与高度动态伸缩完美兼顾'
+        ],
+        btnCollapsed: '点此展开详细功能列表 (测试动态高度变化)',
+        btnExpanded: '点此收起详细内容 (高度自适应缩回)',
+        features: [
+          '<b>全平台标准通信</b>：移动端/桌面端走原生 Channel，Web 端走 HTML5 postMessage，彻底解决未实现异常。',
+          '<b>智能嵌套滚轮穿透</b>：内部有可滚动容器时优先滚容器内部，触碰边界或无滚动条时无缝穿透带动外层页面。',
+          '<b>毫秒级尺寸监听</b>：底层挂载现代 ResizeObserver 探针，内容一旦变动即刻联动父容器重绘。',
+          '<b>告别内置滚动条</b>：WebView 高度精确贴合内容，完美融入 Flutter ListView 或 SingleChildScrollView。',
+          '<b>无侵入纯粹设计</b>：绝不篡改用户的 HTML 标签、字号或内联排版，还原本真样式。'
+        ],
+        link: '访问 GitHub 源码仓库 &rarr;'
+      },
+      en: {
+        title: 'Embed WebView Demo',
+        badge: 'v0.1.0 Auto Responsive',
+        desc: 'An HTML card embedded in Flutter. Supports scrollbar-free height adaptation, smart nested wheel passthrough, and instant i18n switching.',
+        scrollTitle: '📜 Scrollable Box (100px fixed, tests nested wheel scrolling):',
+        logs: [
+          'Probe initialized: ResizeObserver listener attached',
+          'Smart wheel passthrough active: prioritizes internal container',
+          'When hovering here, wheel scrolls inside this box first',
+          'When scrolled to bottom, wheel smoothly drives outer page',
+          'Scrolling backwards scrolls inside until top is reached',
+          'When scrolled to top, wheel smoothly drives outer page upwards',
+          'Scrolling outside this box directly drives the outer page',
+          'Seamless blend of nested scrolling & dynamic height resizing'
+        ],
+        btnCollapsed: 'Click to expand feature list (Test dynamic height)',
+        btnExpanded: 'Click to collapse details (Height shrinks back)',
+        features: [
+          '<b>Cross-Platform</b>: Native channels on mobile/desktop, HTML5 postMessage on Web, eliminating unhandled exceptions.',
+          '<b>Smart Nested Wheel Scroll</b>: Scrolls internal container first; smoothly penetrates to outer page at boundaries.',
+          '<b>Millisecond Size Detection</b>: Mounts modern ResizeObserver probe, instantly updating parent layout on size changes.',
+          '<b>Zero Inner Scrollbar</b>: WebView height fits content snugly, smoothly embedding into Flutter ListView or SingleChildScrollView.',
+          '<b>Non-Intrusive Design</b>: Does not alter user HTML tags, font sizes, or inline typography, keeping authentic styles.'
+        ],
+        link: 'Visit GitHub Repository &rarr;'
+      }
+    };
+
+    function updateTexts() {
+      var data = i18nData[currentLang];
+      document.getElementById('txtTitle').innerText = data.title;
+      document.getElementById('txtBadge').innerText = data.badge;
+      document.getElementById('txtDesc').innerText = data.desc;
+      document.getElementById('scrollTitle').innerText = data.scrollTitle;
+      
+      for (var i = 0; i < 8; i++) {
+        var el = document.getElementById('logItem' + (i + 1));
+        if (el) el.innerText = data.logs[i];
+      }
+
+      var btn = document.getElementById('toggleBtn');
+      btn.innerText = isExpanded ? data.btnExpanded : data.btnCollapsed;
+
+      for (var j = 0; j < 5; j++) {
+        var featEl = document.getElementById('featItem' + (j + 1));
+        if (featEl) featEl.innerHTML = data.features[j];
+      }
+
+      document.getElementById('txtLink').innerHTML = data.link;
+
+      document.getElementById('btnZh').className = 'lang-btn' + (currentLang === 'zh' ? ' active' : '');
+      document.getElementById('btnEn').className = 'lang-btn' + (currentLang === 'en' ? ' active' : '');
+      document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+    }
+
+    function switchLanguage(lang, notifyHost) {
+      if (currentLang === lang) return;
+      currentLang = lang;
+      updateTexts();
+      if (notifyHost !== false) {
+        if (window.EmbedWebViewHeightChannel) {
+          try {
+            window.EmbedWebViewHeightChannel.postMessage('lang:' + lang);
+          } catch (e) {}
+        }
+        if (window.parent && window.parent !== window) {
+          try {
+            window.parent.postMessage('embed_webview_lang:' + lang, '*');
+          } catch (e) {}
+        }
+      }
+    }
+
+    window.setAppLanguage = function(lang) {
+      switchLanguage(lang, false);
+    };
+
+    function toggleDetails() {
+      var box = document.getElementById('detailsBox');
+      isExpanded = !isExpanded;
+      if (isExpanded) {
+        box.classList.add('expanded');
+      } else {
+        box.classList.remove('expanded');
+      }
+      var data = i18nData[currentLang];
+      document.getElementById('toggleBtn').innerText = isExpanded ? data.btnExpanded : data.btnCollapsed;
+    }
+
+    // 初始化检测语言：检测 navigator.language 是否为 zh 开头
+    (function initLanguage() {
+      var navLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+      currentLang = navLang.indexOf('zh') === 0 ? 'zh' : 'en';
+      updateTexts();
+    })();
+  </script>
+</body>
+</html>

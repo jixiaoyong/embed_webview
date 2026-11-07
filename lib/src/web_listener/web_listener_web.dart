@@ -13,7 +13,11 @@ class _WebMessageSubscriptionImpl implements WebMessageSubscription {
   }
 }
 
-WebMessageSubscription? createWebMessageListener(void Function(double height) onHeight) {
+WebMessageSubscription? createWebMessageListener({
+  required void Function(double height) onHeight,
+  void Function(double deltaY)? onScroll,
+  void Function(String lang)? onLanguage,
+}) {
   final JSFunction listener = ((web.MessageEvent event) {
     try {
       final JSAny? data = event.data;
@@ -24,6 +28,27 @@ WebMessageSubscription? createWebMessageListener(void Function(double height) on
           final double? h = double.tryParse(heightStr);
           if (h != null && h > 0) {
             onHeight(h);
+          }
+        } else if (str.startsWith('embed_webview_lang:')) {
+          final String lang = str.substring('embed_webview_lang:'.length);
+          onLanguage?.call(lang);
+        } else if (str.startsWith('embed_webview_scroll:')) {
+          final String deltaStr = str.substring('embed_webview_scroll:'.length);
+          final double? deltaY = double.tryParse(deltaStr);
+          if (deltaY != null) {
+            if (onScroll != null) {
+              onScroll(deltaY);
+            } else {
+              final web.WheelEvent wheelEvent = web.WheelEvent(
+                'wheel',
+                web.WheelEventInit(
+                  deltaY: deltaY,
+                  bubbles: true,
+                  cancelable: true,
+                ),
+              );
+              web.window.dispatchEvent(wheelEvent);
+            }
           }
         }
       }
