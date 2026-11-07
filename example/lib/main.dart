@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
-import 'package:embed_webview/embed_webview.dart' show EmbedWebView, WebViewController;
+import 'package:embed_webview/embed_webview.dart'
+    show EmbedWebView, WebViewController;
 import 'package:example/web_content.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -47,7 +48,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     // 优先检测设备系统语言：中文系统默认为 zh，其它语言默认为 en
-    final String deviceLang = ui.PlatformDispatcher.instance.locale.languageCode.toLowerCase();
+    final String deviceLang =
+        ui.PlatformDispatcher.instance.locale.languageCode.toLowerCase();
     _isZh = deviceLang.startsWith('zh');
   }
 
@@ -63,7 +65,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     final String lang = _isZh ? 'zh' : 'en';
     try {
-      _webViewController?.runJavaScript('if (window.setAppLanguage) { window.setAppLanguage("$lang"); }');
+      _webViewController?.runJavaScript(
+          'if (window.setAppLanguage) { window.setAppLanguage("$lang"); }');
     } catch (_) {}
   }
 
@@ -90,7 +93,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: SingleChildScrollView(
         controller: _scrollController,
-        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics()),
         child: Column(
           children: [
             Container(
@@ -102,26 +106,30 @@ class _MyHomePageState extends State<MyHomePage> {
                   _isZh
                       ? "WebView 上方的原生组件 (Flutter Native Header)"
                       : "Flutter Native Content Before WebView",
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
               child: EmbedWebView(
                 webContent,
                 initialHeight: 120.0,
                 animate: true,
                 scrollController: _scrollController,
                 gestureRecognizers: {
-                  Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+                  Factory<OneSequenceGestureRecognizer>(
+                      () => EagerGestureRecognizer()),
                 },
                 onWebViewCreated: (controller) {
                   _webViewController = controller;
                   // 同步初始语言至 WebView 内部
                   final String lang = _isZh ? 'zh' : 'en';
                   try {
-                    controller.runJavaScript('if (window.setAppLanguage) { window.setAppLanguage("$lang"); }');
+                    controller.runJavaScript(
+                        'if (window.setAppLanguage) { window.setAppLanguage("$lang"); }');
                   } catch (_) {}
                 },
                 onLanguageChanged: (lang) {
@@ -138,7 +146,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        _isZh ? '超链接拦截测试：点击了 -> $url' : 'Hyperlink intercepted: clicked -> $url',
+                        _isZh
+                            ? '超链接拦截测试：点击了 -> $url'
+                            : 'Hyperlink intercepted: clicked -> $url',
                       ),
                       duration: const Duration(seconds: 2),
                     ),
@@ -158,7 +168,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       _isZh
                           ? "WebView 下方的原生长列表 (手势滑动与穿透测试区)"
                           : "Native Content Below WebView (Scroll & Gesture Test Area)",
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
                   for (int i = 1; i <= 10; i++)
@@ -167,7 +178,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Text('$i'),
                       ),
                       title: Text(
-                        _isZh ? 'Flutter 原生内容条目 #$i' : 'Flutter Native Item #$i',
+                        _isZh
+                            ? 'Flutter 原生内容条目 #$i'
+                            : 'Flutter Native Item #$i',
                       ),
                       subtitle: Text(
                         _isZh

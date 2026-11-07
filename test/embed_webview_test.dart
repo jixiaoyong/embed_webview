@@ -133,15 +133,19 @@ void main() {
       expect(find.byType(EmbedWebView), findsOneWidget);
       expect(find.byKey(const Key('mock_webview')), findsOneWidget);
       expect(mockPlatform.lastController, isNotNull);
-      expect(mockPlatform.lastController!.lastLoadedHtml, contains('Test HTML'));
-      expect(mockPlatform.lastController!.channels, contains(WebViewUtils.channelName));
+      expect(
+          mockPlatform.lastController!.lastLoadedHtml, contains('Test HTML'));
+      expect(mockPlatform.lastController!.channels,
+          contains(WebViewUtils.channelName));
 
       // 验证初始高度生效
       final size = tester.getSize(find.byType(EmbedWebView));
       expect(size.height, equals(120.0));
     });
 
-    testWidgets('renders network URL mode and triggers probe injection on page finished', (tester) async {
+    testWidgets(
+        'renders network URL mode and triggers probe injection on page finished',
+        (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -151,7 +155,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(mockPlatform.lastController!.lastLoadRequestParams?.uri.toString(), equals('https://flutter.dev'));
+      expect(mockPlatform.lastController!.lastLoadRequestParams?.uri.toString(),
+          equals('https://flutter.dev'));
 
       // 模拟网页加载完成
       final navDelegate = mockPlatform.lastNavigationDelegate!;
@@ -159,10 +164,12 @@ void main() {
       navDelegate.onPageFinished!('https://flutter.dev');
 
       // 验证动态注入了探针 JS
-      expect(mockPlatform.lastController!.lastExecutedJs, contains('ResizeObserver'));
+      expect(mockPlatform.lastController!.lastExecutedJs,
+          contains('ResizeObserver'));
     });
 
-    testWidgets('intercepts hyperlink clicks and notifies onLinkTap', (tester) async {
+    testWidgets('intercepts hyperlink clicks and notifies onLinkTap',
+        (tester) async {
       String? tappedUrl;
 
       await tester.pumpWidget(
@@ -193,7 +200,9 @@ void main() {
       expect(tappedUrl, equals('https://example.com'));
     });
 
-    testWidgets('updates height smoothly when ResizeObserver channel reports new size', (tester) async {
+    testWidgets(
+        'updates height smoothly when ResizeObserver channel reports new size',
+        (tester) async {
       double? reportedHeight;
 
       await tester.pumpWidget(
@@ -209,7 +218,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final onMessage = mockPlatform.lastController!.channels[WebViewUtils.channelName]!;
+      final onMessage =
+          mockPlatform.lastController!.channels[WebViewUtils.channelName]!;
       onMessage(const JavaScriptMessage(message: '420.0'));
 
       await tester.pumpAndSettle();
@@ -219,7 +229,9 @@ void main() {
       expect(reportedHeight, equals(420.0));
     });
 
-    testWidgets('gesture coordination: scrolling works in parent SingleChildScrollView', (tester) async {
+    testWidgets(
+        'gesture coordination: scrolling works in parent SingleChildScrollView',
+        (tester) async {
       final scrollController = ScrollController();
 
       await tester.pumpWidget(

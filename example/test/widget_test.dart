@@ -87,7 +87,7 @@ void main() {
         (widget) =>
             widget is Text &&
             (widget.data?.contains('Embed Webview Demo') == true ||
-             widget.data?.contains('自适应 WebView 演示') == true),
+                widget.data?.contains('自适应 WebView 演示') == true),
       ),
       findsOneWidget,
     );

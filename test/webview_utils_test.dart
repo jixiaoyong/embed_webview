@@ -4,7 +4,8 @@ import 'package:embed_webview/src/webview_utils.dart';
 void main() {
   group('WebViewUtils Tests', () {
     test('getWebContent wraps content without tampering user styles', () {
-      const content = '<h1 style="color: red; font-size: 32px;">Title</h1><p>Paragraph</p>';
+      const content =
+          '<h1 style="color: red; font-size: 32px;">Title</h1><p>Paragraph</p>';
       final result = WebViewUtils.getWebContent(content);
 
       expect(result.contains('<html'), isTrue);
@@ -18,7 +19,8 @@ void main() {
 
     test('getWebContent supports custom backgroundColor if specified', () {
       const content = '<p>Styled background</p>';
-      final result = WebViewUtils.getWebContent(content, backgroundColor: '#f0f0f0');
+      final result =
+          WebViewUtils.getWebContent(content, backgroundColor: '#f0f0f0');
 
       expect(result.contains('background: #f0f0f0;'), isTrue);
     });
