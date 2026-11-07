@@ -1,30 +1,87 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility that Flutter provides. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:example/main.dart';
+import 'package:embed_webview/embed_webview.dart';
+import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
+
+class MockPlatformWebViewController extends PlatformWebViewController {
+  MockPlatformWebViewController(super.params) : super.implementation();
+
+  @override
+  Future<void> setJavaScriptMode(JavaScriptMode javaScriptMode) async {}
+
+  @override
+  Future<void> setBackgroundColor(Color color) async {}
+
+  @override
+  Future<void> addJavaScriptChannel(
+    JavaScriptChannelParams javaScriptChannelParams,
+  ) async {}
+
+  @override
+  Future<void> loadHtmlString(String html, {String? baseUrl}) async {}
+
+  @override
+  Future<void> setPlatformNavigationDelegate(
+    PlatformNavigationDelegate handler,
+  ) async {}
+}
+
+class MockPlatformNavigationDelegate extends PlatformNavigationDelegate {
+  MockPlatformNavigationDelegate(super.params) : super.implementation();
+
+  @override
+  Future<void> setOnNavigationRequest(
+    NavigationRequestCallback onNavigationRequest,
+  ) async {}
+
+  @override
+  Future<void> setOnPageFinished(PageEventCallback onPageFinished) async {}
+}
+
+class MockPlatformWebViewWidget extends PlatformWebViewWidget {
+  MockPlatformWebViewWidget(super.params) : super.implementation();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(key: Key('mock_webview'));
+  }
+}
+
+class MockWebViewPlatform extends WebViewPlatform {
+  @override
+  PlatformWebViewController createPlatformWebViewController(
+    PlatformWebViewControllerCreationParams params,
+  ) {
+    return MockPlatformWebViewController(params);
+  }
+
+  @override
+  PlatformNavigationDelegate createPlatformNavigationDelegate(
+    PlatformNavigationDelegateCreationParams params,
+  ) {
+    return MockPlatformNavigationDelegate(params);
+  }
+
+  @override
+  PlatformWebViewWidget createPlatformWebViewWidget(
+    PlatformWebViewWidgetCreationParams params,
+  ) {
+    return MockPlatformWebViewWidget(params);
+  }
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  setUp(() {
+    WebViewPlatform.instance = MockWebViewPlatform();
+  });
+
+  testWidgets('Smoke test for MyHomePage layout', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.textContaining('Embed Webview Demo'), findsOneWidget);
+    expect(find.text('Text before webview (Flutter native)'), findsOneWidget);
+    expect(find.text('Text after webview (Flutter native)'), findsOneWidget);
+    expect(find.byType(EmbedWebView), findsOneWidget);
   });
 }
