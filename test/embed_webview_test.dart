@@ -411,6 +411,57 @@ void main() {
       expect(find.text('HTTP failed'), findsOneWidget);
     });
 
+    testWidgets('HTTP error for subresource does not show error',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.network(
+              'https://bad.example',
+              errorBuilder: (context, error) => const Text('Load failed'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      mockPlatform.lastNavigationDelegate!.onHttpError!(
+        HttpResponseError(
+          request: WebResourceRequest(
+            uri: Uri.parse('https://bad.example/image.png'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Load failed'), findsNothing);
+    });
+
+    testWidgets('HTTP error for main frame URL shows error', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.network(
+              'https://bad.example',
+              errorBuilder: (context, error) => const Text('Load failed'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      mockPlatform.lastNavigationDelegate!.onHttpError!(
+        HttpResponseError(
+          request: WebResourceRequest(
+            uri: Uri.parse('https://bad.example'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Load failed'), findsOneWidget);
+    });
+
     testWidgets('changing URL clears the error state', (tester) async {
       await tester.pumpWidget(
         MaterialApp(

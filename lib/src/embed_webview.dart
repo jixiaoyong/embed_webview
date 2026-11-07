@@ -181,6 +181,10 @@ class _EmbedWebViewState extends State<EmbedWebView>
   /// [HttpResponseError]），无失败时为 null。
   Object? _loadError;
 
+  /// 最近一次 onPageStarted 收到的主框架 URL，用来在 onHttpError 里
+  /// 判断失败的是不是主框架（见 onHttpError 注释）。
+  String? _mainFrameUrl;
+
   bool get _isNetworkMode => widget.url != null;
 
   @override
@@ -282,6 +286,7 @@ class _EmbedWebViewState extends State<EmbedWebView>
                   _isLoading = true;
                   _loadingProgress = 0.0;
                   _loadError = null;
+                  _mainFrameUrl = url;
                 });
               }
             },
@@ -326,8 +331,17 @@ class _EmbedWebViewState extends State<EmbedWebView>
             onHttpError: (HttpResponseError error) {
               LogUtil.d("HTTP error: ${error.response?.statusCode}");
               // 仅主框架的 HTTP 错误才进入错误态：Android 上子资源 404 也会
-              // 走到这里，整页置空会是回归；request 为空时按主框架处理
-              final bool isMainFrame = error.request?.isForMainFrame ?? true;
+              // 走到这里，整页置空会是回归。
+              // 注意：WebResourceRequest 只有一个 uri 字段，没有 isForMainFrame
+              //（platform_interface 2.15.x 源码实查），所以用 URI 比较判断：
+              // 失败请求的 URI 等于最近一次主框架开始加载的 URL（重定向时
+              // Android 会再次触发 onPageStarted 更新它），或等于最初的
+              // widget.url，才算主框架；request 为空时按主框架处理，
+              // 避免漏掉错误态。
+              final String? failedUri = error.request?.uri.toString();
+              final bool isMainFrame = failedUri == null ||
+                  failedUri == _mainFrameUrl ||
+                  failedUri == widget.url;
               if (isMainFrame && mounted) {
                 setState(() {
                   _loadError = error;
