@@ -94,7 +94,8 @@ class WebViewUtils {
   // 智能触摸手势路由 (Touch Gesture Routing for Mobile)
   if (!window.__embedWebviewTouchAttached) {
     window.__embedWebviewTouchAttached = true;
-    var isInsideScrollable = false;
+    var touchStartScreenY = 0;
+    var touchLastScreenY = 0;
 
     function checkScrollable(target) {
       var el = target;
@@ -112,39 +113,33 @@ class WebViewUtils {
       return false;
     }
 
-    function notifyLock(lock) {
-      if (window.$channelName) {
-        try {
-          window.$channelName.postMessage('lock_scroll:' + lock);
-        } catch (err) {}
-      }
-      if (window.parent && window.parent !== window) {
-        try {
-          window.parent.postMessage('embed_webview_lock:' + lock, '*');
-        } catch (err) {}
-      }
-    }
-
     window.addEventListener('touchstart', function(e) {
       if (e.touches && e.touches.length === 1) {
-        isInsideScrollable = checkScrollable(e.touches[0].target);
-        if (isInsideScrollable) {
-          notifyLock(true);
+        touchStartScreenY = e.touches[0].screenY;
+        touchLastScreenY = touchStartScreenY;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', function(e) {
+      if (!e.touches || e.touches.length !== 1) return;
+      var curScreenY = e.touches[0].screenY;
+      var deltaY = touchLastScreenY - curScreenY;
+      touchLastScreenY = curScreenY;
+      if (Math.abs(deltaY) < 0.5) return;
+
+      var isScrollable = checkScrollable(e.touches[0].target);
+      // 如果不在内部滚动容器中，使用屏幕绝对物理坐标转发滑动增量（完全消除视口相对坐标引起的画面抖动）
+      if (!isScrollable) {
+        if (window.$channelName) {
+          try {
+            window.$channelName.postMessage('scroll_touch:' + deltaY);
+          } catch (err) {}
         }
-      }
-    }, { passive: true });
-
-    window.addEventListener('touchend', function() {
-      if (isInsideScrollable) {
-        isInsideScrollable = false;
-        notifyLock(false);
-      }
-    }, { passive: true });
-
-    window.addEventListener('touchcancel', function() {
-      if (isInsideScrollable) {
-        isInsideScrollable = false;
-        notifyLock(false);
+        if (window.parent && window.parent !== window) {
+          try {
+            window.parent.postMessage('embed_webview_scroll:' + deltaY, '*');
+          } catch (err) {}
+        }
       }
     }, { passive: true });
   }

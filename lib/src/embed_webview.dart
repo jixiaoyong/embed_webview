@@ -273,12 +273,26 @@ class _EmbedWebViewState extends State<EmbedWebView>
   void _handleTouchScroll(double deltaY) {
     final ScrollController? controller = widget.scrollController;
     if (controller != null && controller.hasClients) {
-      final double target = (controller.offset + deltaY).clamp(
-        0.0,
-        controller.position.maxScrollExtent,
-      );
-      controller.jumpTo(target);
-      LogUtil.d("Touch jumpTo: delta=$deltaY, newOffset=$target");
+      final ScrollPosition position = controller.position;
+      try {
+        // 优先使用 applyUserOffset 模拟真实手指拖拽物理反馈，自动应用物理阻尼与越界弹性，彻底杜绝跳变发抖
+        if (position is ScrollPositionWithSingleContext) {
+          position.applyUserOffset(-deltaY);
+        } else {
+          (position as dynamic).applyUserOffset(-deltaY);
+        }
+        LogUtil.d("Touch applyUserOffset: delta=$deltaY, offset=${controller.offset}");
+      } catch (_) {
+        try {
+          position.pointerScroll(deltaY);
+        } catch (_) {
+          final double target = (controller.offset + deltaY).clamp(
+            0.0,
+            controller.position.maxScrollExtent,
+          );
+          controller.jumpTo(target);
+        }
+      }
     }
   }
 
@@ -357,7 +371,12 @@ class _EmbedWebViewState extends State<EmbedWebView>
           child: WebViewWidget(
             controller: _controller,
             gestureRecognizers: widget.gestureRecognizers ??
-                const <Factory<OneSequenceGestureRecognizer>>{},
+                (widget.scrollController != null
+                    ? {
+                        Factory<OneSequenceGestureRecognizer>(
+                            () => EagerGestureRecognizer()),
+                      }
+                    : const <Factory<OneSequenceGestureRecognizer>>{}),
           ),
         );
 

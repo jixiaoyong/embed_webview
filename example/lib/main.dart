@@ -2,6 +2,8 @@ import 'dart:ui' as ui;
 
 import 'package:embed_webview/embed_webview.dart' show EmbedWebView, WebViewController;
 import 'package:example/web_content.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -39,7 +41,6 @@ class _MyHomePageState extends State<MyHomePage> {
   final ScrollController _scrollController = ScrollController();
   WebViewController? _webViewController;
   double _currentHeight = 0;
-  bool _isScrollLocked = false;
   late bool _isZh;
 
   @override
@@ -89,21 +90,19 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: SingleChildScrollView(
         controller: _scrollController,
-        physics: _isScrollLocked
-            ? const NeverScrollableScrollPhysics()
-            : const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         child: Column(
           children: [
             Container(
-              color: Colors.orange.shade200,
+              color: Colors.orange.shade100,
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24),
+              padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
                 child: Text(
                   _isZh
-                      ? "WebView 上方的原生组件 (Flutter Native)"
-                      : "Text before webview (Flutter native)",
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ? "WebView 上方的原生组件 (Flutter Native Header)"
+                      : "Flutter Native Content Before WebView",
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -114,11 +113,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 initialHeight: 120.0,
                 animate: true,
                 scrollController: _scrollController,
-                onScrollLockChanged: (isLocked) {
-                  setState(() {
-                    _isScrollLocked = isLocked;
-                  });
-                  debugPrint("[MainApp] Scroll lock changed: isLocked=$isLocked");
+                gestureRecognizers: {
+                  Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
                 },
                 onWebViewCreated: (controller) {
                   _webViewController = controller;
@@ -142,7 +138,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        _isZh ? '超链接拦截测试：点击了 -> $url' : 'Interception: clicked hyperlink -> $url',
+                        _isZh ? '超链接拦截测试：点击了 -> $url' : 'Hyperlink intercepted: clicked -> $url',
                       ),
                       duration: const Duration(seconds: 2),
                     ),
@@ -160,8 +156,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     padding: const EdgeInsets.all(8.0),
                     child: Text(
                       _isZh
-                          ? "WebView 下方的原生长列表 (滑动穿透与手势测试区)"
-                          : "Native Content Below WebView (Scroll Penetration Test Area)",
+                          ? "WebView 下方的原生长列表 (手势滑动与穿透测试区)"
+                          : "Native Content Below WebView (Scroll & Gesture Test Area)",
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -171,12 +167,12 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Text('$i'),
                       ),
                       title: Text(
-                        _isZh ? 'Flutter 原生长内容条目 #$i' : 'Flutter Native Test Item #$i',
+                        _isZh ? 'Flutter 原生内容条目 #$i' : 'Flutter Native Item #$i',
                       ),
                       subtitle: Text(
                         _isZh
-                            ? '在卡片或任意区域滑动即可平滑驱动此列表滚动'
-                            : 'Scroll over the webview to verify smooth page scrolling',
+                            ? '在 WebView 卡片或普通区域滑动可平滑驱动此列表滚动'
+                            : 'Scroll over WebView to smoothly drive this page',
                       ),
                     ),
                 ],
