@@ -6,9 +6,7 @@
 ![GitHub](https://img.shields.io/github/license/jixiaoyong/embed_webview?color=brightgreen)
 ![support platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Web-brightgreen)
 
-<p align="center">
-  <img src="./doc/img/screenshot.png" alt="embed_webview 效果截图" width="400" />
-</p>
+![embed_webview 效果截图](doc/img/screenshot.png)
 
 `embed_webview` 是一个可直接嵌入 Flutter 页面内部、能够根据网页内容高度**自动自适应调整尺寸（Auto Height / Wrap Content）**的通用 WebView 组件。
 

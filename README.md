@@ -6,9 +6,7 @@
 ![GitHub](https://img.shields.io/github/license/jixiaoyong/embed_webview?color=brightgreen)
 ![support platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Web-brightgreen)
 
-<p align="center">
-  <img src="./doc/img/screenshot.png" alt="embed_webview screenshot" width="400" />
-</p>
+![embed_webview screenshot](doc/img/screenshot.png)
 
 A responsive, auto-height WebView widget for Flutter that dynamically sizes itself to fit its content using modern web ResizeObserver.
 
