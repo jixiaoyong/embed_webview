@@ -49,7 +49,7 @@ Add `embed_webview` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  embed_webview: ^0.2.0
+  embed_webview: ^0.3.0
 ```
 
 ---
@@ -106,6 +106,42 @@ EmbedWebView.network(
 )
 ```
 
+### 4. Loading & Error States (native platforms only)
+
+Without these, a slow network shows a blank area and a failed load shows
+nothing at all. Pass builders to show your own UI instead — both overlay
+the WebView, which stays mounted so loading continues underneath:
+
+```dart
+EmbedWebView.network(
+  'https://flutter.dev',
+  loadingBuilder: (context, progress) => Center(
+    child: CircularProgressIndicator(value: progress),
+  ),
+  errorBuilder: (context, error) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.cloud_off),
+        Text('Failed to load: $error'),
+        FilledButton(
+          onPressed: () => controller.reload(), // via onWebViewCreated
+          child: const Text('Retry'),
+        ),
+      ],
+    ),
+  ),
+  onWebResourceError: (error) =>
+      debugPrint('Load failed: ${error.description}'),
+)
+```
+
+Notes:
+* Only main-frame failures enter the error state; sub-resource failures
+  (e.g. a broken image) are ignored so the page is not blanked.
+* On Web, loading/error states are inactive (no `NavigationDelegate` is
+  set on that platform); the builders are never shown there.
+
 Save and run the project:
 
 | Chinese Mode | English Mode |
@@ -133,6 +169,9 @@ Save and run the project:
 | `onLanguageChanged` | `ValueChanged<String>?` | `null` | Callback when embedded web content notifies language changes |
 | `gestureRecognizers` | `Set<Factory>?` | `null` | Custom gesture recognizers; automatically defaults to `EagerGestureRecognizer` when `scrollController != null` |
 | `backgroundColor` | `String?` | `null` | Custom background color (e.g., `'#ffffff'`) |
+| `loadingBuilder` | `Widget Function(BuildContext, double)?` | `null` | Loading placeholder overlay (native only); `double` is progress 0.0–1.0; `null` keeps the old behavior |
+| `errorBuilder` | `Widget Function(BuildContext, Object)?` | `null` | Error placeholder overlay shown only on main-frame failure (native only); `error` is `WebResourceError` or `HttpResponseError`; `null` keeps the old behavior |
+| `onWebResourceError` | `void Function(WebResourceError)?` | `null` | Callback on main-frame resource load failure (native only) |
 
 ---
 

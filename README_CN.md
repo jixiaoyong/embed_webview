@@ -50,7 +50,7 @@
 dependencies:
   flutter:
     sdk: flutter
-  embed_webview: ^0.2.0
+  embed_webview: ^0.3.0
 ```
 
 ---
@@ -107,6 +107,38 @@ EmbedWebView.network(
 )
 ```
 
+### 4. 加载态与错误态（仅原生端）
+
+不传这两个 builder 时，网络慢会显示空白、加载失败也毫无反馈。传了之后会以
+覆盖层形式显示在 WebView 之上（WebView 始终挂载，加载在底下继续进行）：
+
+```dart
+EmbedWebView.network(
+  'https://flutter.dev',
+  loadingBuilder: (context, progress) => Center(
+    child: CircularProgressIndicator(value: progress),
+  ),
+  errorBuilder: (context, error) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.cloud_off),
+        Text('加载失败：$error'),
+        FilledButton(
+          onPressed: () => controller.reload(), // 经 onWebViewCreated 拿到
+          child: const Text('重试'),
+        ),
+      ],
+    ),
+  ),
+  onWebResourceError: (error) => debugPrint('加载失败：${error.description}'),
+)
+```
+
+注意：
+* 只有主框架加载失败才会进入错误态；子资源失败（如某张图片 404）会被忽略，不会整页置空。
+* Web 端不设置 `NavigationDelegate`，加载/错误态在该平台不生效，builder 不会被调用。
+
 保存并运行项目：
 
 | 中文界面 (Chinese Mode) | 英文界面 (English Mode) |
@@ -134,6 +166,9 @@ EmbedWebView.network(
 | `onLanguageChanged` | `ValueChanged<String>?` | `null` | 网页内部触发语言切换时的通知回调 |
 | `gestureRecognizers` | `Set<Factory>?` | `null` | 自定义手势识别器集合；传入 `scrollController` 且此项为 `null` 时自动缺省配置 `EagerGestureRecognizer` |
 | `backgroundColor` | `String?` | `null` | 自定义背景色（如 `'#ffffff'`） |
+| `loadingBuilder` | `Widget Function(BuildContext, double)?` | `null` | 加载中占位覆盖层（仅原生端）；`double` 为 0.0–1.0 的加载进度；`null` 时保持旧行为 |
+| `errorBuilder` | `Widget Function(BuildContext, Object)?` | `null` | 加载失败占位覆盖层，仅主框架失败时显示（仅原生端）；`error` 为 `WebResourceError` 或 `HttpResponseError`；`null` 时保持旧行为 |
+| `onWebResourceError` | `void Function(WebResourceError)?` | `null` | 主框架资源加载失败回调（仅原生端） |
 
 ---
 

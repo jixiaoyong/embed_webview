@@ -6,6 +6,7 @@
  * Copyright (c) 2022 by jixiaoyong, All Rights Reserved. 
  */
 
-export 'package:webview_flutter/webview_flutter.dart' show WebViewController;
+export 'package:webview_flutter/webview_flutter.dart'
+    show HttpResponseError, WebResourceError, WebViewController;
 export 'src/embed_webview.dart' show EmbedWebView;
 export 'src/webview_utils.dart' show WebViewUtils;

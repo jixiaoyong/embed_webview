@@ -53,7 +53,11 @@ class MockPlatformNavigationDelegate extends PlatformNavigationDelegate {
   MockPlatformNavigationDelegate(super.params) : super.implementation();
 
   NavigationRequestCallback? onNavigationRequest;
+  PageEventCallback? onPageStarted;
   PageEventCallback? onPageFinished;
+  ProgressCallback? onProgress;
+  WebResourceErrorCallback? onWebResourceError;
+  HttpResponseErrorCallback? onHttpError;
 
   @override
   Future<void> setOnNavigationRequest(
@@ -63,8 +67,30 @@ class MockPlatformNavigationDelegate extends PlatformNavigationDelegate {
   }
 
   @override
+  Future<void> setOnPageStarted(PageEventCallback onPageStarted) async {
+    this.onPageStarted = onPageStarted;
+  }
+
+  @override
   Future<void> setOnPageFinished(PageEventCallback onPageFinished) async {
     this.onPageFinished = onPageFinished;
+  }
+
+  @override
+  Future<void> setOnProgress(ProgressCallback onProgress) async {
+    this.onProgress = onProgress;
+  }
+
+  @override
+  Future<void> setOnWebResourceError(
+    WebResourceErrorCallback onWebResourceError,
+  ) async {
+    this.onWebResourceError = onWebResourceError;
+  }
+
+  @override
+  Future<void> setOnHttpError(HttpResponseErrorCallback onHttpError) async {
+    this.onHttpError = onHttpError;
   }
 }
 
@@ -260,6 +286,168 @@ void main() {
 
       // 证明手势正常驱动了外层滚动
       expect(scrollController.offset, greaterThan(0.0));
+    });
+  });
+
+  group('EmbedWebView loading & error states', () {
+    testWidgets('shows loadingBuilder while loading, hides it on finished',
+        (tester) async {
+      double? seenProgress;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView(
+              '<p>Loading test</p>',
+              loadingBuilder: (context, progress) {
+                seenProgress = progress;
+                return const Text('Loading...');
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 初始即加载态
+      expect(find.text('Loading...'), findsOneWidget);
+      expect(seenProgress, equals(0.0));
+
+      final navDelegate = mockPlatform.lastNavigationDelegate!;
+      expect(navDelegate.onProgress, isNotNull);
+      navDelegate.onProgress!(45);
+      await tester.pump();
+      expect(seenProgress, equals(0.45));
+
+      expect(navDelegate.onPageFinished, isNotNull);
+      navDelegate.onPageFinished!('about:blank');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Loading...'), findsNothing);
+      expect(find.byKey(const Key('mock_webview')), findsOneWidget);
+    });
+
+    testWidgets(
+        'shows errorBuilder and calls onWebResourceError on main-frame failure',
+        (tester) async {
+      WebResourceError? reportedError;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.network(
+              'https://this-domain-does-not-exist-12345.example',
+              errorBuilder: (context, error) => const Text('Load failed'),
+              onWebResourceError: (error) => reportedError = error,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final navDelegate = mockPlatform.lastNavigationDelegate!;
+      expect(navDelegate.onWebResourceError, isNotNull);
+      navDelegate.onWebResourceError!(
+        WebResourceError(
+          errorCode: -2,
+          description: 'net::ERR_NAME_NOT_RESOLVED',
+          isForMainFrame: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Load failed'), findsOneWidget);
+      expect(reportedError, isNotNull);
+      expect(reportedError!.errorCode, equals(-2));
+    });
+
+    testWidgets('ignores sub-resource errors', (tester) async {
+      var callbackInvoked = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.network(
+              'https://flutter.dev',
+              errorBuilder: (context, error) => const Text('Load failed'),
+              onWebResourceError: (_) => callbackInvoked = true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      mockPlatform.lastNavigationDelegate!.onWebResourceError!(
+        WebResourceError(
+          errorCode: 404,
+          description: 'Not Found',
+          isForMainFrame: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Load failed'), findsNothing);
+      expect(callbackInvoked, isFalse);
+    });
+
+    testWidgets('shows errorBuilder on HTTP error', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.network(
+              'https://flutter.dev/does-not-exist',
+              errorBuilder: (context, error) => const Text('HTTP failed'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      mockPlatform.lastNavigationDelegate!.onHttpError!(
+        const HttpResponseError(),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('HTTP failed'), findsOneWidget);
+    });
+
+    testWidgets('changing URL clears the error state', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.network(
+              'https://bad.example',
+              errorBuilder: (context, error) => const Text('Load failed'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      mockPlatform.lastNavigationDelegate!.onWebResourceError!(
+        WebResourceError(
+          errorCode: -2,
+          description: 'net::ERR_NAME_NOT_RESOLVED',
+          isForMainFrame: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Load failed'), findsOneWidget);
+
+      // 换一个 URL：_loadContent 复位错误态
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.network(
+              'https://flutter.dev',
+              errorBuilder: (context, error) => const Text('Load failed'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Load failed'), findsNothing);
     });
   });
 }
