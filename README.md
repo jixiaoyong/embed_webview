@@ -6,8 +6,6 @@
 ![GitHub](https://img.shields.io/github/license/jixiaoyong/embed_webview?color=brightgreen)
 ![support platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Web-brightgreen)
 
-![embed_webview screenshot](doc/img/screenshot.png)
-
 A responsive, auto-height WebView widget for Flutter that dynamically sizes itself to fit its content using modern web ResizeObserver.
 
 Eliminates blank space, cut-off content, and nested scrolling conflicts when embedding web content in Column, ListView, or SingleChildScrollView.
@@ -77,6 +75,9 @@ EmbedWebView.network(
   onLinkTap: (url) => debugPrint("Clicked link: $url"),
 )
 ```
+
+Save and run the project, you will see the web content:
+![](./doc/img/screenshot.png)
 
 ---
 
