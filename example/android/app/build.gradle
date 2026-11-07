@@ -19,8 +19,8 @@ apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
-    namespace "com.example.example"
-    compileSdkVersion 34
+    namespace "io.github.jixiaoyong.embed_webview_example"
+    compileSdkVersion 35
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -36,9 +36,9 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.example"
+        applicationId "io.github.jixiaoyong.embed_webview_example"
         minSdkVersion 21
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }

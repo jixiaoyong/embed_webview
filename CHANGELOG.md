@@ -1,3 +1,17 @@
+## 0.2.0
+
+### What's New
+* **Smart Gesture & Scroll Routing**: Added `scrollController` integration with native fling / inertia deceleration, viewport jitter elimination, and inner scroll protection.
+* **Desktop Wheel Passthrough**: Automatically routes mouse wheels to parent `ScrollController` on macOS and Windows.
+* **Web Standards**: Native postMessage listener for smooth cross-window sizing and scrolling on Web.
+* **Controller Callback**: Added `onWebViewCreated` to access `WebViewController` for direct JavaScript execution.
+
+#### 新增特性
+* **多端智能手势与滚动穿透路由**：支持 `scrollController` 联动，实现原生级抛掷惯性滑行 (Fling)、屏幕绝对物理坐标防抖与内部二级滚动保护。
+* **桌面端鼠标滚轮穿透**：macOS / Windows 桌面端卡片普通区域滚轮自动通过 `pointerScroll` 平滑联动外层滚动。
+* **Web 端标准通信**：基于标准 HTML5 postMessage 监听跨窗口通信，全功能支持自适应与穿透。
+* **控制器就绪回调**：新增 `onWebViewCreated`，方便直接执行自定义 JavaScript 交互与双向通信。
+
 ## 0.1.0
 
 ### What's New

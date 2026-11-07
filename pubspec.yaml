@@ -1,7 +1,15 @@
 name: embed_webview
-description: An auto-height webview widget for Flutter that adapts its size using ResizeObserver. Supports Android, iOS, macOS, Windows, and Web.
-version: 0.1.0
+description: An auto-height WebView widget for Flutter with ResizeObserver, seamless nested scrolling, smart gesture routing, and desktop wheel passthrough.
+version: 0.2.0
 homepage: https://github.com/jixiaoyong/embed_webview
+repository: https://github.com/jixiaoyong/embed_webview
+issue_tracker: https://github.com/jixiaoyong/embed_webview/issues
+topics:
+  - webview
+  - auto-height
+  - scroll
+  - gesture
+  - ui-component
 # publish command: dart pub publish --server=https://pub.dev
 
 environment:
@@ -15,6 +23,7 @@ dependencies:
   webview_flutter: ^4.10.0
   webview_flutter_wkwebview: ^3.16.0
   webview_flutter_web: ^0.2.3
+  web: ^1.0.0
 
 dev_dependencies:
   flutter_test:
