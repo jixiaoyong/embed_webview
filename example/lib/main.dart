@@ -1,11 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:embed_webview/embed_webview.dart'
-    show
-        EmbedWebView,
-        HttpResponseError,
-        WebResourceError,
-        WebViewController;
+    show EmbedWebView, HttpResponseError, WebResourceError, WebViewController;
 import 'package:example/web_content.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
