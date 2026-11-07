@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'logutil.dart';
+import 'web_listener/web_listener.dart';
 import 'webview_utils.dart';
 
 /// 能够内嵌在页面内部并自适应高度的通用 WebView 组件。
@@ -15,6 +16,10 @@ import 'webview_utils.dart';
 ///
 /// 内部通过现代标准的 [ResizeObserver] 实时感知网页内容尺寸变化并自动调整高度，
 /// 杜绝内部滚动条和内容截断。
+///
+/// 针对 Android、iOS、macOS、Windows 和 Web 进行了深度多端兼容性适配：
+/// * 移动端/桌面端：走高效的原生平台通道通信；
+/// * Web 端：走浏览器标准 HTML5 postMessage 跨窗口通信，避开未实现异常。
 class EmbedWebView extends StatefulWidget {
   /// 嵌入的 HTML 字符串（在网络模式下为 null）
   final String? webViewContent;
@@ -119,6 +124,7 @@ class _EmbedWebViewState extends State<EmbedWebView>
   double _contentHeight = 80.0;
   String? _currentLoadedContent;
   bool _isFirstUrlNavigationHandled = false;
+  WebMessageSubscription? _webMessageSubscription;
 
   bool get _isNetworkMode => widget.url != null;
 
@@ -131,61 +137,75 @@ class _EmbedWebViewState extends State<EmbedWebView>
   }
 
   void _initController() {
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..addJavaScriptChannel(
-        WebViewUtils.channelName,
-        onMessageReceived: (JavaScriptMessage message) {
-          final double? parsedHeight = double.tryParse(message.message);
-          if (parsedHeight != null && parsedHeight > 0) {
-            if ((parsedHeight - _contentHeight).abs() > 0.5) {
-              if (mounted) {
-                setState(() {
-                  _contentHeight = parsedHeight;
-                });
-              }
-              widget.onHeightChanged?.call(parsedHeight);
-              LogUtil.d("EmbedWebView height updated: $parsedHeight");
-            }
-          }
-        },
-      )
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onNavigationRequest: (NavigationRequest request) {
-            final String reqUrl = request.url;
-            LogUtil.d("Navigation request: $reqUrl");
+    _controller = WebViewController();
 
-            // 放行初始页面加载
-            if (reqUrl == 'about:blank' || reqUrl.startsWith('data:text/html')) {
-              return NavigationDecision.navigate;
-            }
-
-            // 远程模式下放行首次自身 URL 载入
-            if (_isNetworkMode && !_isFirstUrlNavigationHandled) {
-              _isFirstUrlNavigationHandled = true;
-              return NavigationDecision.navigate;
-            }
-
-            // 用户点击超链接：触发外部回调并默认拦截小卡片内跳转
-            if (widget.onLinkTap != null) {
-              widget.onLinkTap!(reqUrl);
-            }
-            return NavigationDecision.prevent;
+    if (!kIsWeb) {
+      // 原生移动端与桌面端通道支持
+      _controller
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..addJavaScriptChannel(
+          WebViewUtils.channelName,
+          onMessageReceived: (JavaScriptMessage message) {
+            final double? parsedHeight = double.tryParse(message.message);
+            _handleHeightUpdate(parsedHeight);
           },
-          onPageFinished: (String url) async {
-            LogUtil.d("Page finished loading: $url");
-            // 远程网络模式下在页面加载完成后注入动态探针脚本
-            if (_isNetworkMode) {
-              try {
-                await _controller.runJavaScript(WebViewUtils.dynamicProbeJs);
-              } catch (e) {
-                LogUtil.e(e);
+        )
+        ..setNavigationDelegate(
+          NavigationDelegate(
+            onNavigationRequest: (NavigationRequest request) {
+              final String reqUrl = request.url;
+              LogUtil.d("Navigation request: $reqUrl");
+
+              // 放行初始页面加载
+              if (reqUrl == 'about:blank' || reqUrl.startsWith('data:text/html')) {
+                return NavigationDecision.navigate;
               }
-            }
-          },
-        ),
-      );
+
+              // 远程模式下放行首次自身 URL 载入
+              if (_isNetworkMode && !_isFirstUrlNavigationHandled) {
+                _isFirstUrlNavigationHandled = true;
+                return NavigationDecision.navigate;
+              }
+
+              // 用户点击超链接：触发外部回调并默认拦截小卡片内跳转
+              if (widget.onLinkTap != null) {
+                widget.onLinkTap!(reqUrl);
+              }
+              return NavigationDecision.prevent;
+            },
+            onPageFinished: (String url) async {
+              LogUtil.d("Page finished loading: $url");
+              // 远程网络模式下在页面加载完成后注入动态探针脚本
+              if (_isNetworkMode) {
+                try {
+                  await _controller.runJavaScript(WebViewUtils.dynamicProbeJs);
+                } catch (e) {
+                  LogUtil.e(e);
+                }
+              }
+            },
+          ),
+        );
+    } else {
+      // Web 浏览器平台：注册标准 HTML5 postMessage 监听，避开平台未实现异常
+      _webMessageSubscription = initWebMessageListener((double height) {
+        _handleHeightUpdate(height);
+      });
+    }
+  }
+
+  void _handleHeightUpdate(double? parsedHeight) {
+    if (parsedHeight != null && parsedHeight > 0) {
+      if ((parsedHeight - _contentHeight).abs() > 0.5) {
+        if (mounted) {
+          setState(() {
+            _contentHeight = parsedHeight;
+          });
+        }
+        widget.onHeightChanged?.call(parsedHeight);
+        LogUtil.d("EmbedWebView height updated: $parsedHeight");
+      }
+    }
   }
 
   void _loadContent() {
@@ -265,5 +285,11 @@ class _EmbedWebViewState extends State<EmbedWebView>
         return webViewWidget;
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _webMessageSubscription?.cancel();
+    super.dispose();
   }
 }

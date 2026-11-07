@@ -1,13 +1,15 @@
 /*
  * @description: HTML 内容包装与 ResizeObserver 探针注入工具
  * 遵循极简与单一职责原则：仅注入高度监听探针，不篡改用户的 HTML 样式、字体或排版
+ * 同时支持移动端原生通道 (JavaScriptChannel) 与 Web 浏览器端 (HTML5 postMessage) 双重通信
  * @author: jixiaoyong
  * @email: jixiaoyong1995@gmail.com
  */
 class WebViewUtils {
   static const String channelName = 'EmbedWebViewHeightChannel';
+  static const String webMessageType = 'embed_webview_resize';
 
-  /// 纯 JS 代码探针（用于在网络 URL 页面中动态注入）
+  /// 纯 JS 代码探针（用于在网络 URL 页面中动态注入，或直接内嵌在 HTML 中）
   static const String dynamicProbeJs = '''
 (function() {
   function notifyHeight() {
@@ -19,8 +21,17 @@ class WebViewUtils {
       document.documentElement.scrollHeight ||
       0
     );
-    if (height > 0 && window.$channelName) {
-      window.$channelName.postMessage(height.toString());
+    if (height > 0) {
+      // 1. 原生平台通道 (Android / iOS / macOS / Windows)
+      if (window.$channelName) {
+        window.$channelName.postMessage(height.toString());
+      }
+      // 2. Web 浏览器端标准 HTML5 跨窗口消息 (iframe -> 宿主窗口)
+      if (window.parent && window.parent !== window) {
+        try {
+          window.parent.postMessage('embed_webview_resize:' + height, '*');
+        } catch (e) {}
+      }
     }
   }
 
@@ -42,7 +53,6 @@ class WebViewUtils {
 ''';
 
   /// ResizeObserver 监听脚本标签
-  /// 实时监听 #embed-container 的尺寸变化（图片加载、DOM 变动等），并通过 JavaScriptChannel 回传高度
   static const String resizeObserverScript = '''
 <script type="text/javascript">
 $dynamicProbeJs
@@ -77,6 +87,7 @@ $dynamicProbeJs
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <base target="_blank" />
   <style>
     html, body {
       margin: 0;
