@@ -182,22 +182,26 @@ class _EmbedWebViewState extends State<EmbedWebView>
             final String text = message.message;
             LogUtil.d("onMessageReceived: $text");
             if (text.startsWith('scroll_wheel:')) {
-              final double? delta = double.tryParse(text.substring('scroll_wheel:'.length));
+              final double? delta =
+                  double.tryParse(text.substring('scroll_wheel:'.length));
               if (delta != null) {
                 _handleWheelScroll(delta);
               }
             } else if (text.startsWith('scroll_touch:')) {
-              final double? delta = double.tryParse(text.substring('scroll_touch:'.length));
+              final double? delta =
+                  double.tryParse(text.substring('scroll_touch:'.length));
               if (delta != null) {
                 _handleTouchScroll(delta);
               }
             } else if (text.startsWith('scroll_fling:')) {
-              final double? velocity = double.tryParse(text.substring('scroll_fling:'.length));
+              final double? velocity =
+                  double.tryParse(text.substring('scroll_fling:'.length));
               if (velocity != null) {
                 _handleTouchFling(velocity);
               }
             } else if (text.startsWith('scroll:')) {
-              final double? delta = double.tryParse(text.substring('scroll:'.length));
+              final double? delta =
+                  double.tryParse(text.substring('scroll:'.length));
               if (delta != null) {
                 _handleWheelScroll(delta);
               }
@@ -205,7 +209,8 @@ class _EmbedWebViewState extends State<EmbedWebView>
               final String lang = text.substring('lang:'.length);
               widget.onLanguageChanged?.call(lang);
             } else if (text.startsWith('lock_scroll:')) {
-              final bool isLocked = text.substring('lock_scroll:'.length) == 'true';
+              final bool isLocked =
+                  text.substring('lock_scroll:'.length) == 'true';
               widget.onScrollLockChanged?.call(isLocked);
             } else {
               final double? parsedHeight = double.tryParse(text);
@@ -220,7 +225,8 @@ class _EmbedWebViewState extends State<EmbedWebView>
               LogUtil.d("Navigation request: $reqUrl");
 
               // 放行初始页面加载
-              if (reqUrl == 'about:blank' || reqUrl.startsWith('data:text/html')) {
+              if (reqUrl == 'about:blank' ||
+                  reqUrl.startsWith('data:text/html')) {
                 return NavigationDecision.navigate;
               }
 
@@ -301,7 +307,8 @@ class _EmbedWebViewState extends State<EmbedWebView>
         } else {
           (position as dynamic).applyUserOffset(-deltaY);
         }
-        LogUtil.d("Touch applyUserOffset: delta=$deltaY, offset=${controller.offset}");
+        LogUtil.d(
+            "Touch applyUserOffset: delta=$deltaY, offset=${controller.offset}");
       } catch (_) {
         try {
           position.pointerScroll(deltaY);

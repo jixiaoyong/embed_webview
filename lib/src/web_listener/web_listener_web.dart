@@ -25,7 +25,8 @@ WebMessageSubscription? createWebMessageListener({
       if (data != null) {
         final String str = data.dartify()?.toString() ?? '';
         if (str.startsWith('embed_webview_resize:')) {
-          final String heightStr = str.substring('embed_webview_resize:'.length);
+          final String heightStr =
+              str.substring('embed_webview_resize:'.length);
           final double? h = double.tryParse(heightStr);
           if (h != null && h > 0) {
             onHeight(h);
@@ -52,7 +53,8 @@ WebMessageSubscription? createWebMessageListener({
             }
           }
         } else if (str.startsWith('embed_webview_scroll_fling:')) {
-          final String velocityStr = str.substring('embed_webview_scroll_fling:'.length);
+          final String velocityStr =
+              str.substring('embed_webview_scroll_fling:'.length);
           final double? v = double.tryParse(velocityStr);
           if (v != null) {
             onFling?.call(v);

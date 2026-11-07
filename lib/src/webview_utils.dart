@@ -235,7 +235,8 @@ $dynamicProbeJs
     String? backgroundColor,
     @Deprecated('已废弃，推荐在传入的 HTML 中定义自己的字体') String? fontSize,
     @Deprecated('已废弃，推荐在传入的 HTML 中定义自己的行高') String? lineHeight,
-    @Deprecated('已废弃，推荐在传入的 HTML 中通过 CSS 控制图片样式') bool forceExpandImageWidget = false,
+    @Deprecated('已废弃，推荐在传入的 HTML 中通过 CSS 控制图片样式')
+    bool forceExpandImageWidget = false,
     bool needFormatContent = true,
   }) {
     String contentFormatted = content;
@@ -247,9 +248,8 @@ $dynamicProbeJs
       }
     }
 
-    final String bgStyle = backgroundColor != null
-        ? 'background: $backgroundColor;'
-        : '';
+    final String bgStyle =
+        backgroundColor != null ? 'background: $backgroundColor;' : '';
 
     return '''<!DOCTYPE html>
 <html>
