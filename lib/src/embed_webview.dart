@@ -146,6 +146,7 @@ class _EmbedWebViewState extends State<EmbedWebView>
   String? _currentLoadedContent;
   bool _isFirstUrlNavigationHandled = false;
   WebMessageSubscription? _webMessageSubscription;
+  bool _isReadyToRender = false;
 
   bool get _isNetworkMode => widget.url != null;
 
@@ -155,6 +156,17 @@ class _EmbedWebViewState extends State<EmbedWebView>
     _contentHeight = widget.height ?? widget.initialHeight;
     _initController();
     _loadContent();
+    if (!kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _isReadyToRender = true;
+          });
+        }
+      });
+    } else {
+      _isReadyToRender = true;
+    }
   }
 
   void _initController() {
@@ -391,20 +403,28 @@ class _EmbedWebViewState extends State<EmbedWebView>
                 : MediaQuery.of(context).size.width);
         final double effectiveHeight = widget.height ?? _contentHeight;
 
-        Widget webViewWidget = SizedBox(
-          width: effectiveWidth,
-          height: effectiveHeight,
-          child: WebViewWidget(
-            controller: _controller,
-            gestureRecognizers: widget.gestureRecognizers ??
-                (widget.scrollController != null
-                    ? {
-                        Factory<OneSequenceGestureRecognizer>(
-                            () => EagerGestureRecognizer()),
-                      }
-                    : const <Factory<OneSequenceGestureRecognizer>>{}),
-          ),
-        );
+        Widget webViewWidget;
+        if (!_isReadyToRender && !kIsWeb) {
+          webViewWidget = SizedBox(
+            width: effectiveWidth,
+            height: effectiveHeight,
+          );
+        } else {
+          webViewWidget = SizedBox(
+            width: effectiveWidth,
+            height: effectiveHeight,
+            child: WebViewWidget(
+              controller: _controller,
+              gestureRecognizers: widget.gestureRecognizers ??
+                  (widget.scrollController != null
+                      ? {
+                          Factory<OneSequenceGestureRecognizer>(
+                              () => EagerGestureRecognizer()),
+                        }
+                      : const <Factory<OneSequenceGestureRecognizer>>{}),
+            ),
+          );
+        }
 
         if (widget.animate) {
           webViewWidget = AnimatedSize(

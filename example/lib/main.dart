@@ -7,8 +7,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  // 开启 EmbedWebView 内部调试日志
-  EmbedWebView.enableLogging = true;
+  // 如需调试内部手势与高度，可开启日志：
+  // EmbedWebView.enableLogging = true;
   runApp(const MyApp());
 }
 
