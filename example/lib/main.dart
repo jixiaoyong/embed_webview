@@ -2,23 +2,14 @@ import 'package:embed_webview/embed_webview.dart' show EmbedWebView;
 import 'package:example/web_content.dart';
 import 'package:flutter/material.dart';
 
-/*
- * @Author: jixiaoyong
- * @Date: 22/04/27
- * @LastEditors: jixiaoyong
- * @LastEditTime: 22/04/28
- * @FilePath: \embed_webview\example\lib\main.dart
- * @Description: 
- * 
- * @Email: jixiaoyong1995@gmail.com
- * Copyright (c) 2022 by jixiaoyong, All Rights Reserved. 
- */
 void main() {
+  // 可选：开启 EmbedWebView 内部调试日志
+  EmbedWebView.enableLogging = true;
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,13 +18,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Embed Webview'),
+      home: const MyHomePage(title: 'Embed Webview Demo'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
+  const MyHomePage({super.key, required this.title});
 
   final String title;
 
@@ -42,43 +33,60 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  double _currentHeight = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text('${widget.title} (Height: ${_currentHeight.toStringAsFixed(1)}px)'),
       ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.orange.shade200,
-            height: 100,
-            child: const Center(
-              child: Text(
-                "This is a text before the webview.",
-                style: TextStyle(
-                  fontSize: 20,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              color: Colors.orange.shade200,
+              height: 80,
+              child: const Center(
+                child: Text(
+                  "Text before webview (Flutter native)",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(0.0),
-            child: EmbedWebView(webContent),
-          ),
-          Container(
-            color: Colors.blue.shade200,
-            height: 100,
-            child: const Center(
-              child: Text(
-                "This is a text after the webview.",
-                style: TextStyle(
-                  fontSize: 20,
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: EmbedWebView(
+                webContent,
+                initialHeight: 80.0,
+                animate: true,
+                onHeightChanged: (newHeight) {
+                  setState(() {
+                    _currentHeight = newHeight;
+                  });
+                },
+                onLinkTap: (url) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Interception: clicked hyperlink -> $url'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Container(
+              color: Colors.blue.shade200,
+              height: 80,
+              child: const Center(
+                child: Text(
+                  "Text after webview (Flutter native)",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,22 +1,23 @@
-/*
- * @Author: jixiaoyong
- * @Date: 22/04/27
- * @LastEditors: jixiaoyong
- * @LastEditTime: 22/04/27
- * @FilePath: /embed_webview/lib/src/logutil.dart
- * @Description: log util
- * 
- * @Email: jixiaoyong1995@gmail.com
- * Copyright (c) 2022 by jixiaoyong, All Rights Reserved. 
- */
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
+/*
+ * @description: 内部日志工具，默认静默，避免污染开发者控制台
+ * 可通过 EmbedWebView.enableLogging = true 开启调试日志
+ * @author: jixiaoyong
+ * @email: jixiaoyong1995@gmail.com
+ */
 class LogUtil {
+  static bool enableLogging = false;
+
   static void d(String msg) {
-    debugPrint(msg);
+    if (enableLogging) {
+      debugPrint('[EmbedWebView] $msg');
+    }
   }
 
   static void e(Object e) {
-    debugPrint(e.toString());
+    if (enableLogging) {
+      debugPrint('[EmbedWebView Error] $e');
+    }
   }
 }
