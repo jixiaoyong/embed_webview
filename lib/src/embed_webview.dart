@@ -179,6 +179,11 @@ class _EmbedWebViewState extends State<EmbedWebView>
               if (delta != null) {
                 _handleTouchScroll(delta);
               }
+            } else if (text.startsWith('scroll_fling:')) {
+              final double? velocity = double.tryParse(text.substring('scroll_fling:'.length));
+              if (velocity != null) {
+                _handleTouchFling(velocity);
+              }
             } else if (text.startsWith('scroll:')) {
               final double? delta = double.tryParse(text.substring('scroll:'.length));
               if (delta != null) {
@@ -241,6 +246,9 @@ class _EmbedWebViewState extends State<EmbedWebView>
         onScroll: (double deltaY) {
           _handleScroll(deltaY);
         },
+        onFling: (double velocity) {
+          _handleTouchFling(velocity);
+        },
         onLanguage: (String lang) {
           widget.onLanguageChanged?.call(lang);
         },
@@ -292,6 +300,24 @@ class _EmbedWebViewState extends State<EmbedWebView>
           );
           controller.jumpTo(target);
         }
+      }
+    }
+  }
+
+  void _handleTouchFling(double velocity) {
+    final ScrollController? controller = widget.scrollController;
+    if (controller != null && controller.hasClients) {
+      final ScrollPosition position = controller.position;
+      try {
+        // 触发 Flutter 原生惯性减速与弹性回弹模拟
+        if (position is ScrollPositionWithSingleContext) {
+          position.goBallistic(velocity);
+        } else {
+          (position as dynamic).goBallistic(velocity);
+        }
+        LogUtil.d("Touch goBallistic: velocity=$velocity");
+      } catch (e) {
+        LogUtil.d("Touch goBallistic ignored: $e");
       }
     }
   }

@@ -8,11 +8,13 @@ abstract class WebMessageSubscription {
 WebMessageSubscription? initWebMessageListener({
   required void Function(double height) onHeight,
   void Function(double deltaY)? onScroll,
+  void Function(double velocity)? onFling,
   void Function(String lang)? onLanguage,
 }) {
   return createWebMessageListener(
     onHeight: onHeight,
     onScroll: onScroll,
+    onFling: onFling,
     onLanguage: onLanguage,
   );
 }

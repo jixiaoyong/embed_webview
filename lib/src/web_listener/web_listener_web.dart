@@ -16,6 +16,7 @@ class _WebMessageSubscriptionImpl implements WebMessageSubscription {
 WebMessageSubscription? createWebMessageListener({
   required void Function(double height) onHeight,
   void Function(double deltaY)? onScroll,
+  void Function(double velocity)? onFling,
   void Function(String lang)? onLanguage,
 }) {
   final JSFunction listener = ((web.MessageEvent event) {
@@ -49,6 +50,12 @@ WebMessageSubscription? createWebMessageListener({
               );
               web.window.dispatchEvent(wheelEvent);
             }
+          }
+        } else if (str.startsWith('embed_webview_scroll_fling:')) {
+          final String velocityStr = str.substring('embed_webview_scroll_fling:'.length);
+          final double? v = double.tryParse(velocityStr);
+          if (v != null) {
+            onFling?.call(v);
           }
         }
       }

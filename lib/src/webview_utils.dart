@@ -91,11 +91,15 @@ class WebViewUtils {
     }, { passive: true });
   }
 
-  // 智能触摸手势路由 (Touch Gesture Routing for Mobile)
+  // 智能触摸手势路由与惯性抛掷系统 (Touch Gesture Routing & Fling Simulation)
   if (!window.__embedWebviewTouchAttached) {
     window.__embedWebviewTouchAttached = true;
-    var touchStartScreenY = 0;
+    var touchStartX = 0;
+    var touchStartY = 0;
     var touchLastScreenY = 0;
+    var touchAxisLocked = null; // null | 'vertical' | 'horizontal'
+    var isMultiTouch = false;
+    var moveHistory = []; // [{ time: number, y: number }]
 
     function checkScrollable(target) {
       var el = target;
@@ -113,34 +117,100 @@ class WebViewUtils {
       return false;
     }
 
+    function notifyTouch(msg) {
+      if (window.$channelName) {
+        try {
+          window.$channelName.postMessage(msg);
+        } catch (err) {}
+      }
+      if (window.parent && window.parent !== window) {
+        try {
+          window.parent.postMessage('embed_webview_' + msg, '*');
+        } catch (err) {}
+      }
+    }
+
     window.addEventListener('touchstart', function(e) {
+      if (e.touches && e.touches.length > 1) {
+        isMultiTouch = true;
+        moveHistory = [];
+        return;
+      }
       if (e.touches && e.touches.length === 1) {
-        touchStartScreenY = e.touches[0].screenY;
-        touchLastScreenY = touchStartScreenY;
+        isMultiTouch = false;
+        touchStartX = e.touches[0].screenX;
+        touchStartY = e.touches[0].screenY;
+        touchLastScreenY = touchStartY;
+        touchAxisLocked = null;
+        moveHistory = [{ time: performance.now(), y: touchStartY }];
       }
     }, { passive: true });
 
     window.addEventListener('touchmove', function(e) {
-      if (!e.touches || e.touches.length !== 1) return;
-      var curScreenY = e.touches[0].screenY;
-      var deltaY = touchLastScreenY - curScreenY;
-      touchLastScreenY = curScreenY;
-      if (Math.abs(deltaY) < 0.5) return;
+      if (isMultiTouch || !e.touches || e.touches.length !== 1) return;
+      var curX = e.touches[0].screenX;
+      var curY = e.touches[0].screenY;
+      var now = performance.now();
 
-      var isScrollable = checkScrollable(e.touches[0].target);
-      // 如果不在内部滚动容器中，使用屏幕绝对物理坐标转发滑动增量（完全消除视口相对坐标引起的画面抖动）
-      if (!isScrollable) {
-        if (window.$channelName) {
-          try {
-            window.$channelName.postMessage('scroll_touch:' + deltaY);
-          } catch (err) {}
-        }
-        if (window.parent && window.parent !== window) {
-          try {
-            window.parent.postMessage('embed_webview_scroll:' + deltaY, '*');
-          } catch (err) {}
+      // 记录最近 100ms 轨迹用于计算松手惯性速度 (Fling velocity)
+      moveHistory.push({ time: now, y: curY });
+      while (moveHistory.length > 0 && now - moveHistory[0].time > 100) {
+        moveHistory.shift();
+      }
+
+      // 方向解耦判定：若横向位移大于垂直位移，锁定为横向并放行给 WebView
+      if (touchAxisLocked === null) {
+        var dx = Math.abs(curX - touchStartX);
+        var dy = Math.abs(curY - touchStartY);
+        if (dx > 8 || dy > 8) {
+          touchAxisLocked = (dx > dy) ? 'horizontal' : 'vertical';
         }
       }
+      if (touchAxisLocked === 'horizontal') return;
+
+      var deltaY = touchLastScreenY - curY;
+      touchLastScreenY = curY;
+      // 120Hz/高刷屏抗抖微噪点过滤
+      if (Math.abs(deltaY) < 0.8) return;
+
+      var isScrollable = checkScrollable(e.touches[0].target);
+      if (!isScrollable) {
+        notifyTouch('scroll_touch:' + deltaY.toFixed(2));
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', function(e) {
+      if (isMultiTouch) {
+        if (!e.touches || e.touches.length === 0) isMultiTouch = false;
+        moveHistory = [];
+        return;
+      }
+      // 计算手指脱手离开瞬时速度 (px/s)
+      if (touchAxisLocked === 'vertical' && moveHistory.length >= 2) {
+        var now = performance.now();
+        var lastPoint = moveHistory[moveHistory.length - 1];
+        // 如果最后一点距离松手超过 50ms，说明手指在松手前已停滞，不触发 fling
+        if (now - lastPoint.time < 50) {
+          var firstPoint = moveHistory[0];
+          var dt = (lastPoint.time - firstPoint.time) / 1000.0;
+          if (dt > 0.015) {
+            // 手指向上甩 (curY < startY) => dy > 0 => 正向速度 (pixels 增加，向下看)
+            var dy = firstPoint.y - lastPoint.y;
+            var velocity = dy / dt;
+            if (Math.abs(velocity) > 80) {
+              notifyTouch('scroll_fling:' + velocity.toFixed(1));
+            }
+          }
+        }
+      }
+      touchAxisLocked = null;
+      moveHistory = [];
+    }, { passive: true });
+
+    window.addEventListener('touchcancel', function() {
+      touchAxisLocked = null;
+      isMultiTouch = false;
+      moveHistory = [];
     }, { passive: true });
   }
 
