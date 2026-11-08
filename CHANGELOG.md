@@ -1,3 +1,11 @@
+## 0.2.1
+
+### Bug Fixes
+* **Web Touch Scrolling**: The injected probe sends touch drags as `embed_webview_scroll_touch:<deltaY>`, but the Web message listener only handled `resize` / `lang` / `scroll` / `scroll_fling` and silently dropped it. Dragging inside a non-scrollable embed on a touch device therefore did not move the parent page (only the fling on release worked). The missing branch is now handled with the same semantics as the wheel branch.
+
+#### 修复
+* **Web 端触摸滚动失效**：注入探针发出的触摸拖动消息为 `embed_webview_scroll_touch:<deltaY>`，而 Web 端监听器只处理了 `resize` / `lang` / `scroll` / `scroll_fling` 四种前缀，触摸消息被静默丢弃，导致触屏设备上在不可滚动区域内拖动时外层页面不跟手（仅松手甩出的惯性生效）。现已补齐该分支，语义与滚轮分支一致。
+
 ## 0.2.0
 
 ### What's New
