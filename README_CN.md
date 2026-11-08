@@ -50,7 +50,7 @@
 dependencies:
   flutter:
     sdk: flutter
-  embed_webview: ^0.2.0
+  embed_webview: ^0.3.0
 ```
 
 ---
@@ -107,6 +107,30 @@ EmbedWebView.network(
 )
 ```
 
+### 4. 加载与错误回调（仅原生端与桌面端）
+
+组件自身**不渲染任何加载态/错误态 UI**，只把平台事件原样透传。展示什么、放在哪里，完全由你决定：
+
+```dart
+EmbedWebView.network(
+  'https://flutter.dev',
+  onPageStarted: (url) => setState(() => _status = '开始加载'),
+  onProgress: (progress) => setState(() => _progress = progress), // 0-100 原生值
+  onPageFinished: (url) => setState(() => _status = '加载完成'),
+  onWebResourceError: (error) {
+    setState(() => _error = error.description); // DNS 失败、超时、SSL 错误等
+  },
+  onHttpError: (error) {
+    setState(() => _error = 'HTTP ${error.response?.statusCode}');
+  },
+)
+```
+
+注意：
+* 进度是平台原始值 0–100；**加载失败时进度不代表结果**，是否成功请看 `onPageFinished` 与两个错误回调。
+* `onHttpError` 上报平台报告的每一条 4xx/5xx，**不做主框架过滤**：Android 上一张图片返回 404 也会触发。只关心页面本身时，自行比较 `error.request?.uri` 与你的 URL。
+* Web 端不设置 `NavigationDelegate`，以上五个回调在该平台不会触发（与 `onLinkTap` 的现状一致）。
+
 保存并运行项目：
 
 | 中文界面 (Chinese Mode) | 英文界面 (English Mode) |
@@ -134,6 +158,11 @@ EmbedWebView.network(
 | `onLanguageChanged` | `ValueChanged<String>?` | `null` | 网页内部触发语言切换时的通知回调 |
 | `gestureRecognizers` | `Set<Factory>?` | `null` | 自定义手势识别器集合；传入 `scrollController` 且此项为 `null` 时自动缺省配置 `EagerGestureRecognizer` |
 | `backgroundColor` | `String?` | `null` | 自定义背景色（如 `'#ffffff'`） |
+| `onPageStarted` | `void Function(String)?` | `null` | 页面开始加载（仅原生端与桌面端） |
+| `onProgress` | `void Function(int)?` | `null` | 加载进度，平台原始值 0–100（仅原生端与桌面端） |
+| `onPageFinished` | `void Function(String)?` | `null` | 页面加载完成（仅原生端与桌面端） |
+| `onWebResourceError` | `void Function(WebResourceError)?` | `null` | 资源加载失败：DNS、超时、SSL、内容进程终止等（仅原生端与桌面端） |
+| `onHttpError` | `void Function(HttpResponseError)?` | `null` | HTTP 4xx/5xx，原样上报不做主框架过滤（仅原生端与桌面端） |
 
 ---
 

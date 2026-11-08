@@ -72,15 +72,26 @@ class EmbedWebView extends StatefulWidget {
   /// WebViewController 实例回调
   final void Function(WebViewController controller)? onWebViewCreated;
 
-  // ------------ 向下兼容历史参数 ------------
-  @Deprecated('已废弃，建议直接在传入的 HTML 中定义自己的字体')
-  final String? fontSize;
-  @Deprecated('已废弃，建议直接在传入的 HTML 中定义自己的行高')
-  final String? lineHeight;
-  @Deprecated('已废弃，建议直接在传入的 HTML 中通过 CSS 控制图片样式')
-  final bool forceExpandImageWidget;
-  @Deprecated('已废弃，默认保持纯净包装')
-  final bool needFormatContent;
+  // ------------ 加载事件（透传原生 NavigationDelegate）------------
+
+  /// 页面开始加载（仅原生端与桌面端；Web 端不设置 NavigationDelegate，不会触发）。
+  final void Function(String url)? onPageStarted;
+
+  /// 加载进度，[progress] 为平台原始值，范围 0–100。
+  /// 失败时进度不代表结果，请以 [onWebResourceError] / [onHttpError] 为准。
+  final void Function(int progress)? onProgress;
+
+  /// 页面加载完成（仅原生端与桌面端）。
+  final void Function(String url)? onPageFinished;
+
+  /// 资源加载失败（仅原生端与桌面端）：DNS 失败、连接超时、SSL 错误、
+  /// 内容进程终止等；平台只上报主框架。
+  final void Function(WebResourceError error)? onWebResourceError;
+
+  /// HTTP 错误（仅原生端与桌面端）：平台报告的每一条 4xx/5xx 原样上报，
+  /// 不做主框架过滤——Android 上子资源（如图片）的 404 同样会触发。
+  /// 只关心页面本身时，请自行比较 `error.request?.uri`。
+  final void Function(HttpResponseError error)? onHttpError;
 
   /// 全局控制是否打印内部日志，默认 false 保持静默
   static bool get enableLogging => LogUtil.enableLogging;
@@ -104,10 +115,11 @@ class EmbedWebView extends StatefulWidget {
     this.onLanguageChanged,
     this.onScrollLockChanged,
     this.onWebViewCreated,
-    this.fontSize,
-    this.lineHeight,
-    this.forceExpandImageWidget = false,
-    this.needFormatContent = true,
+    this.onPageStarted,
+    this.onProgress,
+    this.onPageFinished,
+    this.onWebResourceError,
+    this.onHttpError,
   })  : webViewContent = htmlContent,
         url = null;
 
@@ -129,10 +141,11 @@ class EmbedWebView extends StatefulWidget {
     this.onLanguageChanged,
     this.onScrollLockChanged,
     this.onWebViewCreated,
-    this.fontSize,
-    this.lineHeight,
-    this.forceExpandImageWidget = false,
-    this.needFormatContent = true,
+    this.onPageStarted,
+    this.onProgress,
+    this.onPageFinished,
+    this.onWebResourceError,
+    this.onHttpError,
   }) : webViewContent = null;
 
   @override
@@ -242,9 +255,17 @@ class _EmbedWebViewState extends State<EmbedWebView>
               }
               return NavigationDecision.prevent;
             },
+            onPageStarted: (String url) {
+              LogUtil.d("Page started loading: $url");
+              widget.onPageStarted?.call(url);
+            },
+            onProgress: (int progress) {
+              widget.onProgress?.call(progress);
+            },
             onPageFinished: (String url) async {
               LogUtil.d("Page finished loading: $url");
-              // 远程网络模式下在页面加载完成后注入动态探针脚本
+              // 远程网络模式下在页面加载完成后注入动态探针脚本。
+              // 先注探针再回调，保证用户在自己的回调里执行 JS 时探针已就位。
               if (_isNetworkMode) {
                 try {
                   await _controller.runJavaScript(WebViewUtils.dynamicProbeJs);
@@ -252,6 +273,16 @@ class _EmbedWebViewState extends State<EmbedWebView>
                   LogUtil.e(e);
                 }
               }
+              widget.onPageFinished?.call(url);
+            },
+            onWebResourceError: (WebResourceError error) {
+              LogUtil.d(
+                  "Web resource error: ${error.description} (code ${error.errorCode})");
+              widget.onWebResourceError?.call(error);
+            },
+            onHttpError: (HttpResponseError error) {
+              LogUtil.d("HTTP error: ${error.response?.statusCode}");
+              widget.onHttpError?.call(error);
             },
           ),
         );
@@ -368,10 +399,6 @@ class _EmbedWebViewState extends State<EmbedWebView>
       final String html = WebViewUtils.getWebContent(
         rawHtml,
         backgroundColor: widget.backgroundColor,
-        fontSize: widget.fontSize,
-        lineHeight: widget.lineHeight,
-        forceExpandImageWidget: widget.forceExpandImageWidget,
-        needFormatContent: widget.needFormatContent,
       );
 
       if (_currentLoadedContent != html) {
@@ -386,11 +413,7 @@ class _EmbedWebViewState extends State<EmbedWebView>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.webViewContent != widget.webViewContent ||
         oldWidget.url != widget.url ||
-        oldWidget.backgroundColor != widget.backgroundColor ||
-        oldWidget.fontSize != widget.fontSize ||
-        oldWidget.lineHeight != widget.lineHeight ||
-        oldWidget.forceExpandImageWidget != widget.forceExpandImageWidget ||
-        oldWidget.needFormatContent != widget.needFormatContent) {
+        oldWidget.backgroundColor != widget.backgroundColor) {
       _loadContent();
     }
     if (widget.height != null && widget.height != oldWidget.height) {

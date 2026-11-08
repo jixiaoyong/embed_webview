@@ -1,3 +1,19 @@
+## 0.3.0
+
+### What's New
+* **Load & Error Callbacks**: `EmbedWebView` / `EmbedWebView.network` now forward the platform delegate events verbatim: `onPageStarted`, `onProgress` (0-100, raw platform value), `onPageFinished`, `onWebResourceError` and `onHttpError`. The widget renders no loading or error UI of its own - callers decide what to show and where.
+* **Raw Error Reporting**: `onHttpError` reports every HTTP 4xx/5xx the platform reports, including sub-resources on Android (where a single 404 image also triggers it). No main-frame filtering is applied, so no real failure is ever swallowed; filter by `request?.uri` if you only care about the page itself.
+
+### Breaking Changes
+* **Deprecated parameters removed**: `fontSize`, `lineHeight`, `forceExpandImageWidget` and `needFormatContent` are gone from both `EmbedWebView` constructors and from `WebViewUtils.getWebContent`. They had no effect on rendering; declare styles in your own HTML/CSS instead.
+
+#### 新增特性
+* **加载与错误回调**：`EmbedWebView` / `EmbedWebView.network` 新增 `onPageStarted`、`onProgress`（0-100 原生值）、`onPageFinished`、`onWebResourceError`、`onHttpError` 五个透传回调。组件自身不渲染任何加载态或错误态 UI，展示方式与位置完全由调用方决定。
+* **错误原样上报**：`onHttpError` 上报平台报告的每一条 HTTP 4xx/5xx，包括 Android 上的子资源（如一张图片返回 404）。组件不做主框架过滤，因此不会吞掉真实错误；只关心页面本身时，调用方可按 `request?.uri` 自行过滤。
+
+#### 破坏性变更
+* **移除废弃参数**：`fontSize`、`lineHeight`、`forceExpandImageWidget`、`needFormatContent` 已从两个构造函数与 `WebViewUtils.getWebContent` 中删除。这些参数本就不参与渲染，样式请直接写在自定义 HTML/CSS 中。
+
 ## 0.2.1
 
 ### Bug Fixes

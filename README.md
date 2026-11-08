@@ -49,7 +49,7 @@ Add `embed_webview` to your `pubspec.yaml`:
 dependencies:
   flutter:
     sdk: flutter
-  embed_webview: ^0.2.0
+  embed_webview: ^0.3.0
 ```
 
 ---
@@ -106,6 +106,35 @@ EmbedWebView.network(
 )
 ```
 
+### 4. Load & Error Callbacks (native & desktop only)
+
+The widget renders **no loading or error UI at all** - it only forwards the
+platform events, so what you show and where you show it is entirely your call:
+
+```dart
+EmbedWebView.network(
+  'https://flutter.dev',
+  onPageStarted: (url) => setState(() => _status = 'loading'),
+  onProgress: (progress) => setState(() => _progress = progress), // 0-100 raw
+  onPageFinished: (url) => setState(() => _status = 'done'),
+  onWebResourceError: (error) {
+    setState(() => _error = error.description); // DNS, timeout, SSL, ...
+  },
+  onHttpError: (error) {
+    setState(() => _error = 'HTTP ${error.response?.statusCode}');
+  },
+)
+```
+
+Notes:
+* `progress` is the raw platform value 0-100; **a failing load can still reach
+  100**, so treat `onPageFinished` plus the two error callbacks as the truth.
+* `onHttpError` reports every 4xx/5xx the platform reports, **with no
+  main-frame filtering**: on Android a single 404 image also triggers it.
+  Compare `error.request?.uri` with your URL if you only care about the page.
+* On Web no `NavigationDelegate` is set, so none of the five callbacks fire
+  there (same as the existing `onLinkTap` behaviour).
+
 Save and run the project:
 
 | Chinese Mode | English Mode |
@@ -133,6 +162,11 @@ Save and run the project:
 | `onLanguageChanged` | `ValueChanged<String>?` | `null` | Callback when embedded web content notifies language changes |
 | `gestureRecognizers` | `Set<Factory>?` | `null` | Custom gesture recognizers; automatically defaults to `EagerGestureRecognizer` when `scrollController != null` |
 | `backgroundColor` | `String?` | `null` | Custom background color (e.g., `'#ffffff'`) |
+| `onPageStarted` | `void Function(String)?` | `null` | Page started loading (native & desktop only) |
+| `onProgress` | `void Function(int)?` | `null` | Load progress, raw platform value 0–100 (native & desktop only) |
+| `onPageFinished` | `void Function(String)?` | `null` | Page finished loading (native & desktop only) |
+| `onWebResourceError` | `void Function(WebResourceError)?` | `null` | Resource load failure: DNS, timeout, SSL, content process termination (native & desktop only) |
+| `onHttpError` | `void Function(HttpResponseError)?` | `null` | HTTP 4xx/5xx reported as-is, no main-frame filtering (native & desktop only) |
 
 ---
 
