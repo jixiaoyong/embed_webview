@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:embed_webview/embed_webview.dart'
-    show EmbedWebView, HttpResponseError, WebResourceError, WebViewController;
+    show EmbedWebView, WebViewController;
 import 'package:example/web_content.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -50,7 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
       text: 'https://this-domain-does-not-exist-12345.example');
   String _networkUrl = 'https://this-domain-does-not-exist-12345.example';
   int _networkReloadToken = 0;
-  String? _networkError;
+  String _networkStatus = '';
 
   @override
   void initState() {
@@ -72,25 +72,8 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _networkUrl = _urlController.text.trim();
       _networkReloadToken++;
-      _networkError = null;
+      _networkStatus = '';
     });
-  }
-
-  void _retryNetwork() {
-    setState(() {
-      _networkReloadToken++;
-      _networkError = null;
-    });
-  }
-
-  String _describeError(Object error) {
-    if (error is WebResourceError) {
-      return '${error.description} (code ${error.errorCode})';
-    }
-    if (error is HttpResponseError) {
-      return 'HTTP ${error.response?.statusCode ?? 'error'}';
-    }
-    return error.toString();
   }
 
   void _toggleLanguage() {
@@ -190,123 +173,88 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
               ),
             ),
-            // 网络模式：加载态与错误态演示（默认不存在的域名，直接看错误卡片）
+            // 网络模式：加载/错误只做回调演示，UI 由调用方决定
             Padding(
               padding:
                   const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _isZh
+                        ? '网络模式 / 加载与错误回调'
+                        : 'Network Mode / Load & Error Callbacks',
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
                     children: [
-                      Text(
-                        _isZh
-                            ? '网络模式 / 加载与错误演示'
-                            : 'Network Mode / Loading & Error Demo',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: TextField(
+                          controller: _urlController,
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            hintText: _isZh ? '输入 URL' : 'Enter URL',
+                            isDense: true,
+                          ),
+                          onSubmitted: (_) => _loadNetworkUrl(),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _urlController,
-                              decoration: InputDecoration(
-                                border: const OutlineInputBorder(),
-                                hintText: _isZh ? '输入 URL' : 'Enter URL',
-                                isDense: true,
-                              ),
-                              onSubmitted: (_) => _loadNetworkUrl(),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilledButton(
-                            onPressed: _loadNetworkUrl,
-                            child: Text(_isZh ? '加载' : 'Load'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      EmbedWebView.network(
-                        _networkUrl,
-                        key: ValueKey('$_networkUrl-$_networkReloadToken'),
-                        initialHeight: 160.0,
-                        loadingBuilder: (context, progress) => Container(
-                          color: Colors.grey.shade100,
-                          alignment: Alignment.center,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const CircularProgressIndicator(),
-                              const SizedBox(height: 8),
-                              Text(
-                                _isZh
-                                    ? '加载中 ${(progress * 100).toInt()}%'
-                                    : 'Loading ${(progress * 100).toInt()}%',
-                              ),
-                            ],
-                          ),
-                        ),
-                        errorBuilder: (context, error) => Container(
-                          color: Colors.red.shade50,
-                          alignment: Alignment.center,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.cloud_off,
-                                size: 36,
-                                color: Colors.red,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _isZh ? '页面加载失败' : 'Page failed to load',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                  vertical: 4.0,
-                                ),
-                                child: Text(
-                                  _describeError(error),
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              FilledButton.icon(
-                                onPressed: _retryNetwork,
-                                icon: const Icon(Icons.refresh, size: 16),
-                                label: Text(_isZh ? '重试' : 'Retry'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        onWebResourceError: (error) {
-                          setState(() {
-                            _networkError = _describeError(error);
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                _isZh
-                                    ? '加载失败：$_networkError'
-                                    : 'Load failed: $_networkError',
-                              ),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: _loadNetworkUrl,
+                        child: Text(_isZh ? '加载' : 'Load'),
                       ),
                     ],
                   ),
-                ),
+                  // 状态只用一行纯文本：库不画任何 UI，展示方式由调用方决定
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      _networkStatus.isEmpty
+                          ? (_isZh ? '（尚未加载）' : '(not loaded yet)')
+                          : _networkStatus,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  EmbedWebView.network(
+                    _networkUrl,
+                    key: ValueKey('$_networkUrl-$_networkReloadToken'),
+                    initialHeight: 160.0,
+                    onPageStarted: (url) {
+                      setState(() {
+                        _networkStatus = _isZh ? '开始加载：$url' : 'Started: $url';
+                      });
+                    },
+                    onProgress: (progress) {
+                      setState(() {
+                        _networkStatus =
+                            _isZh ? '加载中 $progress%' : 'Loading $progress%';
+                      });
+                    },
+                    onPageFinished: (url) {
+                      setState(() {
+                        _networkStatus = _isZh ? '加载完成：$url' : 'Finished: $url';
+                      });
+                    },
+                    onWebResourceError: (error) {
+                      setState(() {
+                        _networkStatus = _isZh
+                            ? '网络错误：${error.description}'
+                            : 'Network error: ${error.description}';
+                      });
+                    },
+                    onHttpError: (error) {
+                      final int? code = error.response?.statusCode;
+                      setState(() {
+                        _networkStatus =
+                            _isZh ? 'HTTP 错误：$code' : 'HTTP error: $code';
+                      });
+                    },
+                  ),
+                ],
               ),
             ),
             Container(

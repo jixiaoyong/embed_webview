@@ -106,41 +106,34 @@ EmbedWebView.network(
 )
 ```
 
-### 4. Loading & Error States (native platforms only)
+### 4. Load & Error Callbacks (native & desktop only)
 
-Without these, a slow network shows a blank area and a failed load shows
-nothing at all. Pass builders to show your own UI instead — both overlay
-the WebView, which stays mounted so loading continues underneath:
+The widget renders **no loading or error UI at all** - it only forwards the
+platform events, so what you show and where you show it is entirely your call:
 
 ```dart
 EmbedWebView.network(
   'https://flutter.dev',
-  loadingBuilder: (context, progress) => Center(
-    child: CircularProgressIndicator(value: progress),
-  ),
-  errorBuilder: (context, error) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.cloud_off),
-        Text('Failed to load: $error'),
-        FilledButton(
-          onPressed: () => controller.reload(), // via onWebViewCreated
-          child: const Text('Retry'),
-        ),
-      ],
-    ),
-  ),
-  onWebResourceError: (error) =>
-      debugPrint('Load failed: ${error.description}'),
+  onPageStarted: (url) => setState(() => _status = 'loading'),
+  onProgress: (progress) => setState(() => _progress = progress), // 0-100 raw
+  onPageFinished: (url) => setState(() => _status = 'done'),
+  onWebResourceError: (error) {
+    setState(() => _error = error.description); // DNS, timeout, SSL, ...
+  },
+  onHttpError: (error) {
+    setState(() => _error = 'HTTP ${error.response?.statusCode}');
+  },
 )
 ```
 
 Notes:
-* Only main-frame failures enter the error state; sub-resource failures
-  (e.g. a broken image) are ignored so the page is not blanked.
-* On Web, loading/error states are inactive (no `NavigationDelegate` is
-  set on that platform); the builders are never shown there.
+* `progress` is the raw platform value 0-100; **a failing load can still reach
+  100**, so treat `onPageFinished` plus the two error callbacks as the truth.
+* `onHttpError` reports every 4xx/5xx the platform reports, **with no
+  main-frame filtering**: on Android a single 404 image also triggers it.
+  Compare `error.request?.uri` with your URL if you only care about the page.
+* On Web no `NavigationDelegate` is set, so none of the five callbacks fire
+  there (same as the existing `onLinkTap` behaviour).
 
 Save and run the project:
 
@@ -169,9 +162,11 @@ Save and run the project:
 | `onLanguageChanged` | `ValueChanged<String>?` | `null` | Callback when embedded web content notifies language changes |
 | `gestureRecognizers` | `Set<Factory>?` | `null` | Custom gesture recognizers; automatically defaults to `EagerGestureRecognizer` when `scrollController != null` |
 | `backgroundColor` | `String?` | `null` | Custom background color (e.g., `'#ffffff'`) |
-| `loadingBuilder` | `Widget Function(BuildContext, double)?` | `null` | Loading placeholder overlay (native only); `double` is progress 0.0–1.0; `null` keeps the old behavior |
-| `errorBuilder` | `Widget Function(BuildContext, Object)?` | `null` | Error placeholder overlay shown only on main-frame failure (native only); `error` is `WebResourceError` or `HttpResponseError`; `null` keeps the old behavior |
-| `onWebResourceError` | `void Function(WebResourceError)?` | `null` | Callback on main-frame resource load failure (native only) |
+| `onPageStarted` | `void Function(String)?` | `null` | Page started loading (native & desktop only) |
+| `onProgress` | `void Function(int)?` | `null` | Load progress, raw platform value 0–100 (native & desktop only) |
+| `onPageFinished` | `void Function(String)?` | `null` | Page finished loading (native & desktop only) |
+| `onWebResourceError` | `void Function(WebResourceError)?` | `null` | Resource load failure: DNS, timeout, SSL, content process termination (native & desktop only) |
+| `onHttpError` | `void Function(HttpResponseError)?` | `null` | HTTP 4xx/5xx reported as-is, no main-frame filtering (native & desktop only) |
 
 ---
 

@@ -289,19 +289,56 @@ void main() {
     });
   });
 
-  group('EmbedWebView loading & error states', () {
-    testWidgets('shows loadingBuilder while loading, hides it on finished',
+  group('EmbedWebView load & error callbacks', () {
+    testWidgets('forwards onPageStarted / onProgress / onPageFinished',
         (tester) async {
-      double? seenProgress;
+      String? started;
+      int? seenProgress;
+      String? finished;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: EmbedWebView(
-              '<p>Loading test</p>',
-              loadingBuilder: (context, progress) {
-                seenProgress = progress;
-                return const Text('Loading...');
+            body: EmbedWebView.network(
+              'https://example.com',
+              onPageStarted: (url) => started = url,
+              onProgress: (progress) => seenProgress = progress,
+              onPageFinished: (url) => finished = url,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final navDelegate = mockPlatform.lastNavigationDelegate!;
+      expect(navDelegate.onPageStarted, isNotNull);
+      expect(navDelegate.onProgress, isNotNull);
+      expect(navDelegate.onPageFinished, isNotNull);
+
+      navDelegate.onPageStarted!('https://example.com/a');
+      expect(started, 'https://example.com/a');
+
+      navDelegate.onProgress!(42);
+      expect(seenProgress, 42);
+
+      navDelegate.onPageFinished!('https://example.com/a');
+      // onPageFinished 的回调体内部有 await（注入探针），需要冲刷微任务
+      await tester.pump();
+      expect(finished, 'https://example.com/a');
+    });
+
+    testWidgets('injects the height probe before onPageFinished fires',
+        (tester) async {
+      bool probeReady = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.network(
+              'https://example.com',
+              onPageFinished: (_) {
+                probeReady =
+                    mockPlatform.lastController?.lastExecutedJs != null;
               },
             ),
           ),
@@ -309,196 +346,115 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 初始即加载态
-      expect(find.text('Loading...'), findsOneWidget);
-      expect(seenProgress, equals(0.0));
-
-      final navDelegate = mockPlatform.lastNavigationDelegate!;
-      expect(navDelegate.onProgress, isNotNull);
-      navDelegate.onProgress!(45);
+      mockPlatform
+          .lastNavigationDelegate!.onPageFinished!('https://example.com');
       await tester.pump();
-      expect(seenProgress, equals(0.45));
 
-      expect(navDelegate.onPageFinished, isNotNull);
-      navDelegate.onPageFinished!('about:blank');
-      await tester.pumpAndSettle();
-
-      expect(find.text('Loading...'), findsNothing);
-      expect(find.byKey(const Key('mock_webview')), findsOneWidget);
+      expect(probeReady, isTrue);
+      expect(
+        mockPlatform.lastController!.lastExecutedJs,
+        contains('ResizeObserver'),
+      );
     });
 
-    testWidgets(
-        'shows errorBuilder and calls onWebResourceError on main-frame failure',
-        (tester) async {
-      WebResourceError? reportedError;
+    testWidgets('forwards onWebResourceError as-is', (tester) async {
+      WebResourceError? received;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: EmbedWebView.network(
-              'https://this-domain-does-not-exist-12345.example',
-              errorBuilder: (context, error) => const Text('Load failed'),
-              onWebResourceError: (error) => reportedError = error,
+              'https://example.com',
+              onWebResourceError: (error) => received = error,
             ),
           ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final error = WebResourceError(
+        errorCode: -2,
+        description: 'net::ERR_NAME_NOT_RESOLVED',
+        errorType: WebResourceErrorType.hostLookup,
+        isForMainFrame: true,
+      );
+      mockPlatform.lastNavigationDelegate!.onWebResourceError!(error);
+
+      expect(received, same(error));
+    });
+
+    testWidgets('forwards every onHttpError without main-frame filtering',
+        (tester) async {
+      final List<HttpResponseError> received = <HttpResponseError>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.network(
+              'https://example.com',
+              onHttpError: received.add,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final page = HttpResponseError(
+        request: WebResourceRequest(uri: Uri.parse('https://example.com')),
+        response: WebResourceResponse(
+          uri: Uri.parse('https://example.com'),
+          statusCode: 404,
+        ),
+      );
+      final image = HttpResponseError(
+        request: WebResourceRequest(
+          uri: Uri.parse('https://example.com/logo.png'),
+        ),
+        response: WebResourceResponse(
+          uri: Uri.parse('https://example.com'),
+          statusCode: 404,
+        ),
+      );
+      mockPlatform.lastNavigationDelegate!
+        ..onHttpError!(page)
+        ..onHttpError!(image);
+
+      // 库不做主框架过滤，子资源的 404 也原样上报
+      expect(received, <HttpResponseError>[page, image]);
+    });
+
+    testWidgets('renders no loading or error UI of its own', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.network(
+              'https://example.com',
+              onPageStarted: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('mock_webview')), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    });
+
+    testWidgets('all callbacks are optional', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: EmbedWebView.network('https://example.com')),
         ),
       );
       await tester.pumpAndSettle();
 
       final navDelegate = mockPlatform.lastNavigationDelegate!;
-      expect(navDelegate.onWebResourceError, isNotNull);
-      navDelegate.onWebResourceError!(
-        WebResourceError(
-          errorCode: -2,
-          description: 'net::ERR_NAME_NOT_RESOLVED',
-          isForMainFrame: true,
-        ),
-      );
-      await tester.pumpAndSettle();
+      navDelegate.onPageStarted!('https://example.com');
+      navDelegate.onProgress!(10);
+      navDelegate.onPageFinished!('https://example.com');
 
-      expect(find.text('Load failed'), findsOneWidget);
-      expect(reportedError, isNotNull);
-      expect(reportedError!.errorCode, equals(-2));
-    });
-
-    testWidgets('ignores sub-resource errors', (tester) async {
-      var callbackInvoked = false;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: EmbedWebView.network(
-              'https://flutter.dev',
-              errorBuilder: (context, error) => const Text('Load failed'),
-              onWebResourceError: (_) => callbackInvoked = true,
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      mockPlatform.lastNavigationDelegate!.onWebResourceError!(
-        WebResourceError(
-          errorCode: 404,
-          description: 'Not Found',
-          isForMainFrame: false,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Load failed'), findsNothing);
-      expect(callbackInvoked, isFalse);
-    });
-
-    testWidgets('shows errorBuilder on HTTP error', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: EmbedWebView.network(
-              'https://flutter.dev/does-not-exist',
-              errorBuilder: (context, error) => const Text('HTTP failed'),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      mockPlatform.lastNavigationDelegate!.onHttpError!(
-        const HttpResponseError(),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('HTTP failed'), findsOneWidget);
-    });
-
-    testWidgets('HTTP error for subresource does not show error',
-        (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: EmbedWebView.network(
-              'https://bad.example',
-              errorBuilder: (context, error) => const Text('Load failed'),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      mockPlatform.lastNavigationDelegate!.onHttpError!(
-        HttpResponseError(
-          request: WebResourceRequest(
-            uri: Uri.parse('https://bad.example/image.png'),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Load failed'), findsNothing);
-    });
-
-    testWidgets('HTTP error for main frame URL shows error', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: EmbedWebView.network(
-              'https://bad.example',
-              errorBuilder: (context, error) => const Text('Load failed'),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      mockPlatform.lastNavigationDelegate!.onHttpError!(
-        HttpResponseError(
-          request: WebResourceRequest(
-            uri: Uri.parse('https://bad.example'),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Load failed'), findsOneWidget);
-    });
-
-    testWidgets('changing URL clears the error state', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: EmbedWebView.network(
-              'https://bad.example',
-              errorBuilder: (context, error) => const Text('Load failed'),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      mockPlatform.lastNavigationDelegate!.onWebResourceError!(
-        WebResourceError(
-          errorCode: -2,
-          description: 'net::ERR_NAME_NOT_RESOLVED',
-          isForMainFrame: true,
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Load failed'), findsOneWidget);
-
-      // 换一个 URL：_loadContent 复位错误态
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: EmbedWebView.network(
-              'https://flutter.dev',
-              errorBuilder: (context, error) => const Text('Load failed'),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Load failed'), findsNothing);
+      expect(find.byKey(const Key('mock_webview')), findsOneWidget);
     });
   });
 }

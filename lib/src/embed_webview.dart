@@ -72,31 +72,26 @@ class EmbedWebView extends StatefulWidget {
   /// WebViewController 实例回调
   final void Function(WebViewController controller)? onWebViewCreated;
 
-  /// 加载中占位构建器（仅原生端生效）。
-  /// 网页开始加载时显示，覆盖在 WebView 之上；传 `null` 时保持旧行为
-  /// （加载期间直接显示 WebView）。
-  /// [progress] 为 0.0–1.0 的加载进度。
-  final Widget Function(BuildContext context, double progress)? loadingBuilder;
+  // ------------ 加载事件（透传原生 NavigationDelegate）------------
 
-  /// 加载失败占位构建器（仅原生端生效）。
-  /// 仅主框架加载失败时显示，覆盖在 WebView 之上；传 `null` 时保持旧行为
-  /// （失败时只显示 WebView 自身的空白/错误页）。
-  /// [error] 为 [WebResourceError] 或 [HttpResponseError]。
-  final Widget Function(BuildContext context, Object error)? errorBuilder;
+  /// 页面开始加载（仅原生端与桌面端；Web 端不设置 NavigationDelegate，不会触发）。
+  final void Function(String url)? onPageStarted;
 
-  /// 资源加载失败回调（仅原生端生效）。
-  /// 仅主框架资源加载失败时触发；子资源（如图片）失败不触发。
+  /// 加载进度，[progress] 为平台原始值，范围 0–100。
+  /// 失败时进度不代表结果，请以 [onWebResourceError] / [onHttpError] 为准。
+  final void Function(int progress)? onProgress;
+
+  /// 页面加载完成（仅原生端与桌面端）。
+  final void Function(String url)? onPageFinished;
+
+  /// 资源加载失败（仅原生端与桌面端）：DNS 失败、连接超时、SSL 错误、
+  /// 内容进程终止等；平台只上报主框架。
   final void Function(WebResourceError error)? onWebResourceError;
 
-  // ------------ 向下兼容历史参数 ------------
-  @Deprecated('已废弃，建议直接在传入的 HTML 中定义自己的字体')
-  final String? fontSize;
-  @Deprecated('已废弃，建议直接在传入的 HTML 中定义自己的行高')
-  final String? lineHeight;
-  @Deprecated('已废弃，建议直接在传入的 HTML 中通过 CSS 控制图片样式')
-  final bool forceExpandImageWidget;
-  @Deprecated('已废弃，默认保持纯净包装')
-  final bool needFormatContent;
+  /// HTTP 错误（仅原生端与桌面端）：平台报告的每一条 4xx/5xx 原样上报，
+  /// 不做主框架过滤——Android 上子资源（如图片）的 404 同样会触发。
+  /// 只关心页面本身时，请自行比较 `error.request?.uri`。
+  final void Function(HttpResponseError error)? onHttpError;
 
   /// 全局控制是否打印内部日志，默认 false 保持静默
   static bool get enableLogging => LogUtil.enableLogging;
@@ -120,13 +115,11 @@ class EmbedWebView extends StatefulWidget {
     this.onLanguageChanged,
     this.onScrollLockChanged,
     this.onWebViewCreated,
-    this.loadingBuilder,
-    this.errorBuilder,
+    this.onPageStarted,
+    this.onProgress,
+    this.onPageFinished,
     this.onWebResourceError,
-    this.fontSize,
-    this.lineHeight,
-    this.forceExpandImageWidget = false,
-    this.needFormatContent = true,
+    this.onHttpError,
   })  : webViewContent = htmlContent,
         url = null;
 
@@ -148,13 +141,11 @@ class EmbedWebView extends StatefulWidget {
     this.onLanguageChanged,
     this.onScrollLockChanged,
     this.onWebViewCreated,
-    this.loadingBuilder,
-    this.errorBuilder,
+    this.onPageStarted,
+    this.onProgress,
+    this.onPageFinished,
     this.onWebResourceError,
-    this.fontSize,
-    this.lineHeight,
-    this.forceExpandImageWidget = false,
-    this.needFormatContent = true,
+    this.onHttpError,
   }) : webViewContent = null;
 
   @override
@@ -169,21 +160,6 @@ class _EmbedWebViewState extends State<EmbedWebView>
   bool _isFirstUrlNavigationHandled = false;
   WebMessageSubscription? _webMessageSubscription;
   bool _isReadyToRender = false;
-
-  /// 当前是否正在加载（仅原生端由 NavigationDelegate 驱动；
-  /// Web 端不设置 NavigationDelegate，初始即为 false）。
-  bool _isLoading = !kIsWeb;
-
-  /// 当前加载进度 0.0–1.0（仅原生端由 onProgress 驱动）。
-  double _loadingProgress = 0.0;
-
-  /// 最近一次主框架加载失败的错误（[WebResourceError] 或
-  /// [HttpResponseError]），无失败时为 null。
-  Object? _loadError;
-
-  /// 最近一次 onPageStarted 收到的主框架 URL，用来在 onHttpError 里
-  /// 判断失败的是不是主框架（见 onHttpError 注释）。
-  String? _mainFrameUrl;
 
   bool get _isNetworkMode => widget.url != null;
 
@@ -281,31 +257,15 @@ class _EmbedWebViewState extends State<EmbedWebView>
             },
             onPageStarted: (String url) {
               LogUtil.d("Page started loading: $url");
-              if (mounted) {
-                setState(() {
-                  _isLoading = true;
-                  _loadingProgress = 0.0;
-                  _loadError = null;
-                  _mainFrameUrl = url;
-                });
-              }
+              widget.onPageStarted?.call(url);
             },
             onProgress: (int progress) {
-              if (mounted) {
-                setState(() {
-                  _loadingProgress = progress / 100.0;
-                });
-              }
+              widget.onProgress?.call(progress);
             },
             onPageFinished: (String url) async {
               LogUtil.d("Page finished loading: $url");
-              if (mounted) {
-                setState(() {
-                  _isLoading = false;
-                  _loadingProgress = 1.0;
-                });
-              }
-              // 远程网络模式下在页面加载完成后注入动态探针脚本
+              // 远程网络模式下在页面加载完成后注入动态探针脚本。
+              // 先注探针再回调，保证用户在自己的回调里执行 JS 时探针已就位。
               if (_isNetworkMode) {
                 try {
                   await _controller.runJavaScript(WebViewUtils.dynamicProbeJs);
@@ -313,41 +273,16 @@ class _EmbedWebViewState extends State<EmbedWebView>
                   LogUtil.e(e);
                 }
               }
+              widget.onPageFinished?.call(url);
             },
             onWebResourceError: (WebResourceError error) {
               LogUtil.d(
                   "Web resource error: ${error.description} (code ${error.errorCode})");
-              // 仅主框架失败才进入错误态：子资源（如图片）失败不应整页置空
-              if (error.isForMainFrame ?? true) {
-                widget.onWebResourceError?.call(error);
-                if (mounted) {
-                  setState(() {
-                    _loadError = error;
-                    _isLoading = false;
-                  });
-                }
-              }
+              widget.onWebResourceError?.call(error);
             },
             onHttpError: (HttpResponseError error) {
               LogUtil.d("HTTP error: ${error.response?.statusCode}");
-              // 仅主框架的 HTTP 错误才进入错误态：Android 上子资源 404 也会
-              // 走到这里，整页置空会是回归。
-              // 注意：WebResourceRequest 只有一个 uri 字段，没有 isForMainFrame
-              //（platform_interface 2.15.x 源码实查），所以用 URI 比较判断：
-              // 失败请求的 URI 等于最近一次主框架开始加载的 URL（重定向时
-              // Android 会再次触发 onPageStarted 更新它），或等于最初的
-              // widget.url，才算主框架；request 为空时按主框架处理，
-              // 避免漏掉错误态。
-              final String? failedUri = error.request?.uri.toString();
-              final bool isMainFrame = failedUri == null ||
-                  failedUri == _mainFrameUrl ||
-                  failedUri == widget.url;
-              if (isMainFrame && mounted) {
-                setState(() {
-                  _loadError = error;
-                  _isLoading = false;
-                });
-              }
+              widget.onHttpError?.call(error);
             },
           ),
         );
@@ -443,9 +378,6 @@ class _EmbedWebViewState extends State<EmbedWebView>
         if (mounted) {
           setState(() {
             _contentHeight = parsedHeight;
-            // 内容已实际渲染：作为 onPageFinished 的兜底，清除加载态
-            _isLoading = false;
-            _loadingProgress = 1.0;
           });
         }
         widget.onHeightChanged?.call(parsedHeight);
@@ -455,14 +387,6 @@ class _EmbedWebViewState extends State<EmbedWebView>
   }
 
   void _loadContent() {
-    // 换内容即开始新一轮加载：复位加载态与错误态
-    if (mounted) {
-      setState(() {
-        _isLoading = !kIsWeb;
-        _loadingProgress = 0.0;
-        _loadError = null;
-      });
-    }
     if (_isNetworkMode) {
       final String targetUrl = widget.url!;
       if (_currentLoadedContent != targetUrl) {
@@ -475,10 +399,6 @@ class _EmbedWebViewState extends State<EmbedWebView>
       final String html = WebViewUtils.getWebContent(
         rawHtml,
         backgroundColor: widget.backgroundColor,
-        fontSize: widget.fontSize,
-        lineHeight: widget.lineHeight,
-        forceExpandImageWidget: widget.forceExpandImageWidget,
-        needFormatContent: widget.needFormatContent,
       );
 
       if (_currentLoadedContent != html) {
@@ -493,11 +413,7 @@ class _EmbedWebViewState extends State<EmbedWebView>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.webViewContent != widget.webViewContent ||
         oldWidget.url != widget.url ||
-        oldWidget.backgroundColor != widget.backgroundColor ||
-        oldWidget.fontSize != widget.fontSize ||
-        oldWidget.lineHeight != widget.lineHeight ||
-        oldWidget.forceExpandImageWidget != widget.forceExpandImageWidget ||
-        oldWidget.needFormatContent != widget.needFormatContent) {
+        oldWidget.backgroundColor != widget.backgroundColor) {
       _loadContent();
     }
     if (widget.height != null && widget.height != oldWidget.height) {
@@ -537,29 +453,6 @@ class _EmbedWebViewState extends State<EmbedWebView>
                         }
                       : const <Factory<OneSequenceGestureRecognizer>>{}),
             ),
-          );
-        }
-
-        // 加载/错误态覆盖在 WebView 之上（WebView 始终挂载以保证加载继续进行）；
-        // 未传对应 builder 时保持旧行为
-        final Object? loadError = _loadError;
-        if (loadError != null && widget.errorBuilder != null) {
-          webViewWidget = Stack(
-            children: <Widget>[
-              webViewWidget,
-              Positioned.fill(
-                child: widget.errorBuilder!(context, loadError),
-              ),
-            ],
-          );
-        } else if (_isLoading && widget.loadingBuilder != null) {
-          webViewWidget = Stack(
-            children: <Widget>[
-              webViewWidget,
-              Positioned.fill(
-                child: widget.loadingBuilder!(context, _loadingProgress),
-              ),
-            ],
           );
         }
 
