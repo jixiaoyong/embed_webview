@@ -1,14 +1,26 @@
 ## 0.3.0
 
 ### What's New
-* **Loading & Error States**: Added optional `loadingBuilder`, `errorBuilder` and `onWebResourceError` to `EmbedWebView` / `EmbedWebView.network`. While a remote page is loading, `loadingBuilder` receives the load progress (0.0–1.0); on failure, `errorBuilder` receives the error object and renders a custom error card instead of a blank area.
-* **Main-Frame-Only Error State**: Only main-frame failures enter the error state. `WebResourceError.isForMainFrame` filters resource errors; HTTP errors are filtered by comparing the failed request URI against the last main-frame URL (sub-resource 404s no longer blank the whole page).
-* **Example Network Demo**: Added a network-mode demo card in the example app (loading progress + error card + retry button, defaults to a non-existent domain so the error state is visible immediately).
+* **Load & Error Callbacks**: `EmbedWebView` / `EmbedWebView.network` now forward the platform delegate events verbatim: `onPageStarted`, `onProgress` (0-100, raw platform value), `onPageFinished`, `onWebResourceError` and `onHttpError`. The widget renders no loading or error UI of its own - callers decide what to show and where.
+* **Raw Error Reporting**: `onHttpError` reports every HTTP 4xx/5xx the platform reports, including sub-resources on Android (where a single 404 image also triggers it). No main-frame filtering is applied, so no real failure is ever swallowed; filter by `request?.uri` if you only care about the page itself.
+
+### Breaking Changes
+* **Deprecated parameters removed**: `fontSize`, `lineHeight`, `forceExpandImageWidget` and `needFormatContent` are gone from both `EmbedWebView` constructors and from `WebViewUtils.getWebContent`. They had no effect on rendering; declare styles in your own HTML/CSS instead.
 
 #### 新增特性
-* **加载态与错误态**：`EmbedWebView` / `EmbedWebView.network` 新增可选参数 `loadingBuilder`、`errorBuilder` 与 `onWebResourceError`。远程页面加载中时 `loadingBuilder` 收到加载进度（0.0–1.0）；失败时 `errorBuilder` 收到错误对象，可渲染自定义错误卡片，不再是一片空白。
-* **仅主框架失败才进错误态**：资源错误用 `WebResourceError.isForMainFrame` 过滤；HTTP 错误改用失败请求 URI 与最近一次主框架 URL 比较（子资源 404 不会再让整页置空）。
-* **示例网络演示卡片**：示例 App 增加网络模式演示卡（加载进度 + 错误卡片 + 重试按钮，默认填不存在的域名，打开即能看到错误态）。
+* **加载与错误回调**：`EmbedWebView` / `EmbedWebView.network` 新增 `onPageStarted`、`onProgress`（0-100 原生值）、`onPageFinished`、`onWebResourceError`、`onHttpError` 五个透传回调。组件自身不渲染任何加载态或错误态 UI，展示方式与位置完全由调用方决定。
+* **错误原样上报**：`onHttpError` 上报平台报告的每一条 HTTP 4xx/5xx，包括 Android 上的子资源（如一张图片返回 404）。组件不做主框架过滤，因此不会吞掉真实错误；只关心页面本身时，调用方可按 `request?.uri` 自行过滤。
+
+#### 破坏性变更
+* **移除废弃参数**：`fontSize`、`lineHeight`、`forceExpandImageWidget`、`needFormatContent` 已从两个构造函数与 `WebViewUtils.getWebContent` 中删除。这些参数本就不参与渲染，样式请直接写在自定义 HTML/CSS 中。
+
+## 0.2.1
+
+### Bug Fixes
+* **Web Touch Scrolling**: The injected probe sends touch drags as `embed_webview_scroll_touch:<deltaY>`, but the Web message listener only handled `resize` / `lang` / `scroll` / `scroll_fling` and silently dropped it. Dragging inside a non-scrollable embed on a touch device therefore did not move the parent page (only the fling on release worked). The missing branch is now handled with the same semantics as the wheel branch.
+
+#### 修复
+* **Web 端触摸滚动失效**：注入探针发出的触摸拖动消息为 `embed_webview_scroll_touch:<deltaY>`，而 Web 端监听器只处理了 `resize` / `lang` / `scroll` / `scroll_fling` 四种前缀，触摸消息被静默丢弃，导致触屏设备上在不可滚动区域内拖动时外层页面不跟手（仅松手甩出的惯性生效）。现已补齐该分支，语义与滚轮分支一致。
 
 ## 0.2.0
 

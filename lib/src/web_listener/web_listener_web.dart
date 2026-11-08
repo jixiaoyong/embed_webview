@@ -52,6 +52,25 @@ WebMessageSubscription? createWebMessageListener({
               web.window.dispatchEvent(wheelEvent);
             }
           }
+        } else if (str.startsWith('embed_webview_scroll_touch:')) {
+          final String deltaStr =
+              str.substring('embed_webview_scroll_touch:'.length);
+          final double? deltaY = double.tryParse(deltaStr);
+          if (deltaY != null) {
+            if (onScroll != null) {
+              onScroll(deltaY);
+            } else {
+              final web.WheelEvent wheelEvent = web.WheelEvent(
+                'wheel',
+                web.WheelEventInit(
+                  deltaY: deltaY,
+                  bubbles: true,
+                  cancelable: true,
+                ),
+              );
+              web.window.dispatchEvent(wheelEvent);
+            }
+          }
         } else if (str.startsWith('embed_webview_scroll_fling:')) {
           final String velocityStr =
               str.substring('embed_webview_scroll_fling:'.length);
