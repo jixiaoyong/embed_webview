@@ -5,11 +5,13 @@ on:
     branches:
       - master
       - main
+      - dev
       - 'v*'
   pull_request:
     branches:
       - master
       - main
+      - dev
 
 jobs:
   test-and-lint:
